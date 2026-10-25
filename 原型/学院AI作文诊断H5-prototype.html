@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f7ff">
+  <title>智卷星辰 · AI 作文诊断</title>
+  <style>
+    :root { --ink:#21183a; --muted:#665f78; --paper:#fff; --bg:#f4f0ff; --purple:#7448e7; --purple-deep:#36216d; --purple-soft:#ece4ff; --blue:#7a8ef4; --mint:#4ebd99; --gold:#ffcb68; --line:#e7def8; --shadow:0 18px 48px rgba(60,35,122,.15); --radius-card:24px; --press:.97; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; color:var(--ink); background:linear-gradient(145deg,#eeefff 0%,#faf7ff 48%,#e8f5ff 100%); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+    button, input { font:inherit; }
+    button,.upload-zone { cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+    button:focus-visible, input:focus-visible { outline:3px solid rgba(255,203,104,.9); outline-offset:3px; }
+    .stage { min-height:100vh; display:grid; grid-template-columns:minmax(300px,1fr) 430px minmax(300px,1fr); align-items:center; gap:56px; padding:54px clamp(24px,7vw,140px); overflow:hidden; }
+    .intro { max-width:440px; }
+    .eyebrow { display:inline-flex; align-items:center; gap:8px; color:#5b4ce5; font-size:14px; font-weight:700; letter-spacing:.08em; }
+    .mark { width:24px; height:24px; border-radius:8px; background:linear-gradient(140deg,#6d5cf5,#79a6ff); box-shadow:0 5px 12px #8291ee80; position:relative; }
+    .mark:after { content:""; position:absolute; width:8px; height:8px; left:8px; top:8px; border-radius:3px 3px 3px 0; border:2px solid white; transform:rotate(-18deg); }
+    h1 { margin:18px 0 16px; font-size:clamp(34px,4vw,54px); line-height:1.14; letter-spacing:-.05em; }
+    h1 em { color:#6657f5; font-style:normal; }
+    .intro p { margin:0; color:#6c6e83; font-size:17px; line-height:1.8; }
+    .flow { display:flex; align-items:center; gap:8px; margin-top:31px; color:#777a8c; font-size:13px; font-weight:600; }
+    .flow i { width:25px; height:1px; background:#c9c8d8; display:block; }
+    .hint { margin-top:28px; display:flex; gap:10px; color:#888a9c; font-size:12px; line-height:1.6; }
+    .hint b { color:#5a526d; }
+    .phone { width:100%; height:800px; border:9px solid #202033; border-radius:47px; background:#fff; box-shadow:0 35px 80px rgba(45,39,105,.27),inset 0 0 0 1px rgba(255,255,255,.35); overflow:hidden; position:relative; }
+    .phone:before { content:""; width:118px; height:29px; background:#202033; position:absolute; z-index:8; top:0; left:50%; transform:translateX(-50%); border-radius:0 0 17px 17px; }
+    .screen { height:100%; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; background:#f8f7ff; }
+    .screen::-webkit-scrollbar { display:none; }
+    .view { display:none; min-height:100%; padding:44px 19px 25px; animation:enter .35s ease; }
+    .view.active { display:block; }
+    @keyframes enter { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+    .cover-view { min-height:100%; padding:0; color:#fff; overflow:hidden; background:radial-gradient(ellipse at 50% 20%,#9a79f2 0%,#5733a0 43%,#251449 100%); }
+    .cover-shell { min-height:782px; height:100%; position:relative; display:flex; flex-direction:column; align-items:center; overflow:hidden; isolation:isolate; background:radial-gradient(circle at 52% 28%,rgba(255,228,154,.15),transparent 27%),linear-gradient(180deg,rgba(255,255,255,.04),transparent 35%); }
+    .cover-arch { position:absolute; z-index:-1; inset:13px 13px 13px; border:1px solid rgba(255,221,135,.47); border-radius:24px 24px 30px 30px; box-shadow:inset 0 0 0 5px rgba(255,255,255,.04),0 0 0 1px rgba(24,8,59,.25); pointer-events:none; }
+    .cover-arch:before { content:""; position:absolute; top:0; left:50%; width:130px; height:13px; transform:translateX(-50%); border-radius:0 0 12px 12px; background:linear-gradient(90deg,transparent,#ffd77a,transparent); opacity:.8; }
+    .cover-arch:after { content:"✦   ·   ✦"; position:absolute; left:50%; bottom:11px; transform:translateX(-50%); color:#fbd873; letter-spacing:12px; white-space:nowrap; font-size:10px; opacity:.9; }
+    .cover-shell:before, .cover-shell:after { content:""; position:absolute; z-index:-1; top:-45px; width:68%; height:106%; opacity:.78; background:repeating-linear-gradient(82deg,rgba(255,255,255,.13) 0 29px,rgba(31,13,73,.15) 30px 69px); filter:drop-shadow(0 0 22px rgba(255,220,123,.14)); }
+    .cover-shell:before { left:-32%; transform:rotate(2deg); border-radius:0 0 50% 12%; }
+    .cover-shell:after { right:-32%; transform:scaleX(-1) rotate(2deg); border-radius:0 0 50% 12%; }
+    .cover-top { width:100%; padding:45px 23px 0; display:flex; align-items:center; justify-content:space-between; font-size:14px; font-weight:800; }
+    .cover-brand { display:flex; align-items:center; gap:8px; letter-spacing:.04em; }
+    .cover-brand .mark { background:linear-gradient(140deg,#ffd468,#ff8f76); box-shadow:0 5px 12px #28134a66; }
+    .cover-top small { color:#e6dffc; font-weight:600; font-size:11px; }
+    .stars { position:absolute; inset:60px 0 0; pointer-events:none; z-index:-1; }
+    .stars i { position:absolute; width:8px; height:8px; background:#ffd86e; clip-path:polygon(50% 0,61% 36%,100% 50%,61% 63%,50% 100%,39% 63%,0 50%,39% 36%); filter:drop-shadow(0 0 6px #ffd56a); }
+    .stars i:nth-child(1){left:13%;top:12%;transform:scale(1.4)} .stars i:nth-child(2){right:14%;top:18%;transform:scale(.9)} .stars i:nth-child(3){left:8%;top:42%;transform:scale(.8)} .stars i:nth-child(4){right:8%;top:48%;transform:scale(1.3)} .stars i:nth-child(5){left:25%;top:61%;transform:scale(.7)} .stars i:nth-child(6){right:29%;top:7%;transform:scale(1.1)}
+    .cover-copy { width:100%; margin-top:88px; text-align:center; position:relative; z-index:2; }
+    .cover-chip { display:inline-flex; align-items:center; gap:5px; padding:6px 11px; color:#5d328d; background:#ffd77a; border:1px solid rgba(255,255,255,.45); border-radius:99px; box-shadow:0 5px 0 rgba(56,23,101,.18); font-size:11px; font-weight:900; letter-spacing:.05em; }
+    .cover-copy h2 { margin:16px 0 0; color:#fff; font-size:41px; line-height:1.1; letter-spacing:-.08em; text-shadow:0 4px 0 rgba(59,27,111,.22),0 0 22px rgba(255,236,174,.18); }
+    .cover-copy h2 em { display:block; color:#ffe294; font-style:normal; }
+    .cover-copy p { margin:15px 28px 0; color:#eee6ff; font-size:13px; line-height:1.7; }
+    .cover-mascots { position:absolute; right:-29px; bottom:123px; width:205px; height:300px; z-index:1; }
+    .cover-mascots:before { content:""; position:absolute; z-index:-1; right:31px; top:8px; width:168px; height:278px; border-radius:50% 50% 20% 45%; background:radial-gradient(circle at 35% 30%,rgba(255,230,153,.34),rgba(113,67,194,.13) 48%,transparent 70%); border:1px solid rgba(255,223,132,.19); }
+    .mascot { position:absolute; width:108px; height:108px; border-radius:48% 52% 43% 57% / 54% 42% 58% 46%; box-shadow:inset -8px -9px 0 rgba(0,0,0,.09),0 10px 18px rgba(26,8,66,.22); transform:rotate(-11deg); }
+    .mascot:before, .mascot:after { content:""; position:absolute; top:37px; width:23px; height:27px; border-radius:50%; background:#fff; box-shadow:inset 0 -2px 0 #ded5fa; }
+    .mascot:before { left:26px; } .mascot:after { left:57px; }
+    .mascot .pupil { position:absolute; z-index:1; top:47px; left:35px; width:11px; height:13px; border-radius:50%; background:#25223d; box-shadow:31px 1px 0 #25223d; }
+    .mascot .smile { position:absolute; z-index:1; left:46px; top:73px; width:20px; height:10px; border-bottom:3px solid rgba(42,31,67,.7); border-radius:0 0 50% 50%; }
+    .m1 { right:56px; top:0; background:#ff8e6b; transform:rotate(7deg); } .m2 { right:2px; top:57px; background:#9ac93e; transform:rotate(-12deg); } .m3 { right:72px; top:113px; background:#65a5f5; transform:rotate(7deg); } .m4 { right:3px; top:177px; background:#f6a0c9; transform:rotate(-8deg); } .m5 { right:77px; top:221px; background:#44be99; transform:rotate(7deg); }
+    .cover-start { position:absolute; left:22px; right:22px; bottom:41px; z-index:3; padding:16px 18px; border:2px solid #ffe4a3; border-radius:18px; color:#773756; background:linear-gradient(180deg,#ffe99f,#f7bd50); box-shadow:0 7px 0 #bb6938,0 14px 24px rgba(24,8,59,.32),inset 0 2px 0 #fff7cf; font-size:17px; font-weight:900; letter-spacing:.04em; }
+    .cover-start:active { transform:translateY(3px); box-shadow:0 4px 0 #bb6938,0 9px 18px rgba(24,8,59,.28),inset 0 2px 0 #fff7cf; }
+    .cover-foot { position:absolute; bottom:14px; color:#d7cbee; font-size:10px; opacity:.88; }
+    .report-view { padding:35px 14px 27px; background-color:#a793f3; background-image:linear-gradient(45deg,rgba(255,255,255,.11) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.11) 75%),linear-gradient(45deg,rgba(255,255,255,.11) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.11) 75%); background-position:0 0,20px 20px; background-size:40px 40px; }
+    .report-view .report-head { margin:0 5px 18px; color:#24233a; }
+    .report-view .report-head h3 { font-size:17px; }
+    .report-view .report-head p { color:rgba(36,35,58,.61); }
+    .report-view .back,.report-view .help { border-color:rgba(255,255,255,.64); background:rgba(255,255,255,.72); color:#3c3458; }
+    .report-view .report-hero { min-height:187px; padding:20px 19px 18px; color:#24233a; border-radius:28px 28px 24px 24px; background:linear-gradient(145deg,#fff 0%,#fff 62%,#f6edff 100%); box-shadow:0 13px 25px rgba(71,45,131,.2); }
+    .report-view .report-hero:after { width:170px; height:170px; right:-76px; top:61px; border:24px solid rgba(155,114,244,.12); }
+    .report-view .report-hero .tiny { color:#81799a; opacity:1; font-weight:700; }
+    .report-view .report-title { display:inline-block; position:relative; z-index:1; margin-top:11px; padding:4px 11px 5px; color:#5d31d2; background:linear-gradient(100deg,#e8dbff,#c9dbff 58%,#d9b9fa); border-radius:9px; font-size:31px; line-height:1.12; letter-spacing:-.06em; transform:rotate(-1deg); }
+    .report-view .report-hero .hero-copy { max-width:260px; color:#575168; font-size:12px; font-weight:600; line-height:1.6; }
+    .report-view .status { position:relative; z-index:1; color:#6541bd; background:#f0e9ff; border:1px solid #ded0ff; font-weight:700; }
+    .report-view .recommend-label { margin:22px 6px 10px; color:#fff; font-size:16px; text-shadow:0 1px 1px rgba(73,41,139,.25); }
+    .report-view .recommend-label:after { content:none; }
+    .report-view .course-card { border-color:rgba(255,255,255,.86); box-shadow:0 9px 19px rgba(71,45,131,.15); }
+    .report-view .report-card { border:0; border-radius:25px; box-shadow:0 13px 25px rgba(71,45,131,.16); }
+    .top { display:flex; justify-content:space-between; align-items:center; margin:0 2px 20px; }
+    .brand { font-size:15px; font-weight:800; letter-spacing:.04em; display:flex; align-items:center; gap:7px; }
+    .brand .mark { transform:scale(.77); transform-origin:left; margin-right:-5px; }
+    .help { width:28px; height:28px; padding:0; border:1px solid #e2e1ec; background:#fff; color:#797b8b; border-radius:50%; font-weight:800; }
+    .page-kicker { color:#766af4; font-size:12px; font-weight:800; letter-spacing:.1em; margin-bottom:10px; }
+    .view h2 { margin:0; font-size:27px; letter-spacing:-.04em; line-height:1.28; }
+    .sub { color:var(--muted); font-size:13px; line-height:1.6; margin:8px 0 21px; }
+    .form-card, .report-card, .course-card, .exercise { background:var(--paper); border:1px solid rgba(228,227,240,.9); box-shadow:0 8px 24px rgba(59,54,118,.05); border-radius:19px; }
+    .form-card { padding:17px; }
+    .label { font-size:13px; font-weight:800; margin-bottom:10px; }
+    .upload-zone { position:relative; min-height:185px; border:1.5px dashed #bdb7f5; background:linear-gradient(150deg,#faf9ff,#f5f3ff); border-radius:15px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; overflow:hidden; transition:.2s; }
+    .upload-zone:hover { border-color:#7569f4; background:#f4f2ff; }
+    .camera { width:43px; height:43px; display:grid; place-items:center; border-radius:14px; background:#ebe8ff; color:#695bf2; font-size:22px; margin-bottom:9px; }
+    .upload-zone strong { font-size:14px; }
+    .upload-zone span { margin-top:5px; color:#8b8da0; font-size:11px; }
+    #questionInput,#essayInput { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .preview { display:none; position:absolute; inset:0; padding:10px; align-items:center; background:#f5f3ff; }
+    .preview.show { display:flex; }
+    .sheet-preview { height:100%; width:100%; padding:11px; border-radius:9px; background:repeating-linear-gradient(180deg,#fff 0 13px,#dcd7cc 14px 15px); color:#6b5d4b; font-family:serif; font-size:8px; line-height:1.85; text-align:left; transform:rotate(-1deg); box-shadow:0 5px 15px #80777925; }
+    .scan { position:absolute; left:10px; right:10px; height:2px; background:#786af7; box-shadow:0 0 11px #7765ff; animation:scan 2s ease-in-out infinite; }
+    @keyframes scan { 0%,100%{top:21%} 50%{top:80%} }
+    .tips { display:flex; gap:8px; margin:12px 2px 19px; font-size:11px; color:#8b8d9c; }
+    .tips span { display:flex; align-items:center; gap:4px; }
+    .tips b { color:#5bba9e; }
+    .primary { width:100%; border:0; color:#fff; background:linear-gradient(100deg,#6555ef,#7b91ff); border-radius:15px; padding:15px 16px; font-size:15px; font-weight:800; box-shadow:0 9px 20px #7264e140; transition:transform .15s, box-shadow .15s; }
+    .primary:hover { transform:translateY(-1px); box-shadow:0 12px 24px #7264e15a; }
+    .privacy { color:#a3a4b2; font-size:10px; text-align:center; margin:13px 5px 0; line-height:1.5; }
+    .privacy a { color:#7870a6; text-decoration:none; }
+    .report-head { display:flex; gap:10px; align-items:center; margin:2px 2px 18px; }
+    .back { padding:0; width:30px; height:30px; color:#55566b; border:1px solid #e1e0ed; background:#fff; border-radius:10px; font-size:18px; line-height:1; }
+    .report-head div { flex:1; }
+    .report-head h3 { margin:0; font-size:16px; }
+    .report-head p { margin:4px 0 0; font-size:11px; color:#8e90a1; }
+    .report-hero { padding:18px; color:#fff; overflow:hidden; position:relative; border-radius:20px; background:linear-gradient(140deg,#6b59ef,#7c94ff); box-shadow:0 13px 25px #6b5cee3d; }
+    .report-hero:after { content:""; position:absolute; width:185px; height:185px; right:-89px; top:-80px; border:30px solid rgba(255,255,255,.12); border-radius:50%; }
+    .report-hero .tiny { opacity:.78; font-size:11px; }
+    .report-title { margin-top:8px; font-size:28px; font-weight:800; letter-spacing:-.04em; }
+    .report-hero .hero-copy { position:relative; z-index:1; max-width:235px; margin:7px 0 0; font-size:12px; line-height:1.65; opacity:.93; }
+    .score-row { display:flex; align-items:flex-end; gap:10px; margin-top:7px; }
+    .score { font-family:Georgia,serif; font-size:49px; line-height:.9; font-weight:700; }
+    .score-row span { font-size:13px; padding-bottom:4px; opacity:.9; }
+    .status { display:inline-flex; gap:5px; align-items:center; margin-top:12px; padding:6px 9px; background:rgba(255,255,255,.16); border-radius:99px; font-size:11px; }
+    .report-card { padding:16px; margin-top:14px; }
+    .section-title { display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:800; }
+    .section-title small { font-size:10px; font-weight:600; color:#9192a0; }
+    .ability-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:14px; }
+    .ability { text-align:center; }
+    .ring { --n:75; width:50px; height:50px; display:grid; place-items:center; margin:auto; background:conic-gradient(#7667f4 calc(var(--n)*1%),#eeecfa 0); border-radius:50%; position:relative; font-family:Georgia,serif; font-size:15px; font-weight:800; }
+    .ring:after { content:""; position:absolute; inset:5px; z-index:0; background:#fff; border-radius:50%; }
+    .ring span { z-index:1; }
+    .ability p { color:#747688; font-size:10px; margin:7px 0 0; }
+    .priority { margin-top:14px; background:#fff6ee; border-radius:13px; padding:12px; }
+    .priority b { color:#d46930; font-size:12px; }
+    .priority p { margin:5px 0 0; color:#76665d; font-size:11px; line-height:1.55; }
+    .amend { margin-top:14px; }
+    .amend-label { color:#9193a3; font-size:10px; margin-bottom:7px; }
+    .original { padding:9px 10px; background:#fafafb; border-radius:9px; color:#777889; font-size:11px; line-height:1.55; text-decoration-line:underline; text-decoration-color:#f0aa86; text-decoration-thickness:2px; text-underline-offset:3px; }
+    .better { margin-top:7px; padding:9px 10px; background:#f1fbf8; border-radius:9px; color:#377d69; font-size:11px; line-height:1.55; }
+    .better b { font-weight:800; }
+    .recommend-label { margin:19px 2px 9px; font-size:14px; font-weight:800; }
+    .course-card { padding:12px; display:flex; gap:11px; align-items:center; border-color:#dedaff; }
+    .practice-card { margin-top:10px; border-color:#dceee8; }
+    .course-cover { flex:0 0 68px; height:68px; border-radius:12px; color:#fff; background:linear-gradient(135deg,#172e63,#586cf1); position:relative; display:grid; place-items:center; overflow:hidden; }
+    .course-cover:before { content:""; position:absolute; width:78px; height:78px; border:12px solid #fbcb6b; border-radius:50%; right:-40px; bottom:-34px; }
+    .practice-cover { flex:0 0 68px; height:68px; display:grid; place-items:center; overflow:hidden; border-radius:12px; color:#2a9478; background:linear-gradient(135deg,#dff8ef,#bdeedc); font-size:27px; }
+    .play { width:27px; height:27px; padding-left:3px; border:0; border-radius:50%; color:#6258e9; background:#fff; font-size:11px; z-index:1; }
+    .course-copy { min-width:0; flex:1; }
+    .course-copy small { color:#8175ec; font-size:10px; font-weight:800; }
+    .course-copy strong { display:block; margin-top:4px; color:#35364b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; }
+    .course-copy p { margin:5px 0 0; color:#9192a0; font-size:10px; }
+    .arrow { border:0; background:transparent; color:#7f78ae; font-size:20px; }
+    .secondary { width:100%; margin-top:10px; border:1px solid #dad7fb; color:#6455ef; background:#fff; border-radius:14px; padding:13px; font-size:14px; font-weight:800; }
+    .lesson-top { display:flex; gap:10px; align-items:center; margin-bottom:16px; }
+    .lesson-title { flex:1; }
+    .lesson-title small { color:#898b9a; font-size:11px; }
+    .lesson-title h3 { margin:3px 0 0; font-size:16px; }
+    .video { height:206px; padding:18px; border-radius:18px; color:#fff; position:relative; overflow:hidden; background:linear-gradient(132deg,#17264a,#354b9c 68%,#a58bea); }
+    .video:before { content:""; position:absolute; width:250px; height:250px; border:34px solid rgba(245,201,94,.16); border-radius:50%; right:-100px; top:-98px; }
+    .video:after { content:"写作进阶"; font-size:48px; letter-spacing:-.11em; font-weight:800; color:rgba(255,255,255,.05); position:absolute; left:17px; bottom:16px; white-space:nowrap; }
+    .teacher { display:flex; align-items:center; gap:7px; font-size:11px; position:relative; z-index:1; }
+    .avatar { width:21px; height:21px; display:grid; place-items:center; color:#5f4c28; background:#ffd681; border-radius:50%; font-size:11px; }
+    .video h2 { position:relative; z-index:1; margin:37px 0 0; max-width:245px; color:#fff; font-size:23px; }
+    .video-play { width:47px; height:47px; position:absolute; z-index:2; top:91px; left:50%; transform:translateX(-50%); border:0; border-radius:50%; background:#fff; color:#5847e8; font-size:15px; padding-left:4px; box-shadow:0 7px 15px #0003; }
+    .video-foot { position:absolute; z-index:1; left:18px; right:18px; bottom:13px; display:flex; align-items:center; gap:7px; font-size:10px; }
+    .progress { height:3px; flex:1; border-radius:3px; background:#ffffff54; overflow:hidden; }
+    .progress span { display:block; height:100%; width:27%; background:#ffcf6c; }
+    .chapter { margin-top:15px; padding:15px; }
+    .chapter-list { margin-top:10px; }
+    .chapter-item { display:flex; align-items:center; gap:9px; padding:10px 0; border-bottom:1px solid #f0eff5; font-size:12px; color:#626477; }
+    .chapter-item:last-child { border-bottom:0; }
+    .chapter-item .num { width:19px; height:19px; display:grid; place-items:center; color:#948dd1; background:#f0effd; border-radius:6px; font-size:9px; font-weight:800; }
+    .chapter-item.current { color:#4d42cb; font-weight:800; }
+    .chapter-item.current .num { color:#fff; background:#695af1; }
+    .chapter-item time { margin-left:auto; color:#a1a2ae; font-size:10px; font-weight:500; }
+    .exercise { margin-top:13px; padding:15px; }
+    .exercise p { margin:9px 0 12px; font-size:12px; line-height:1.65; color:#5e6075; }
+    .exercise button { padding:0; background:none; border:0; color:#6656ef; font-size:12px; font-weight:800; }
+    .toast { position:absolute; left:50%; bottom:32px; transform:translate(-50%,20px); z-index:20; padding:10px 14px; background:#27263e; color:#fff; border-radius:99px; white-space:nowrap; opacity:0; pointer-events:none; font-size:12px; transition:.25s; box-shadow:0 7px 18px #0003; }
+    .toast.show { transform:translate(-50%,0); opacity:1; }
+    .side-note { align-self:end; padding-bottom:25px; max-width:265px; color:#777a91; font-size:13px; line-height:1.75; }
+    .side-note b { color:#4b4962; }
+    .side-note .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#f1ba56; margin-right:6px; }
+    /* 智卷星辰：轻拟物学伴 × 紫金成长舞台 */
+    .cover-copy { margin-top:78px; }
+    .cover-copy p { max-width:280px; margin-left:auto; margin-right:auto; }
+    .cover-chip { min-height:28px; padding:6px 12px; border-radius:999px; }
+    .cover-guide { position:absolute; right:20px; bottom:125px; width:190px; height:257px; z-index:1; filter:drop-shadow(0 17px 18px rgba(29,11,71,.28)); }
+    .guide-halo { position:absolute; inset:11px 4px 10px; border:1px solid rgba(255,223,135,.36); border-radius:50%; background:radial-gradient(circle at 47% 38%,rgba(255,232,166,.31),rgba(119,68,197,.12) 47%,transparent 70%); }
+    .guide-orbit { position:absolute; left:7px; top:91px; width:177px; height:63px; border:1px solid rgba(255,225,135,.62); border-radius:50%; transform:rotate(-25deg); }
+    .guide-orbit:after { content:""; position:absolute; right:12px; top:-5px; width:12px; height:12px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 5px rgba(255,203,104,.13); }
+    .guide-pages { position:absolute; left:40px; top:76px; width:112px; height:108px; transform:rotate(-8deg); }
+    .guide-pages:before,.guide-pages:after { content:""; position:absolute; top:5px; width:60px; height:79px; background:linear-gradient(145deg,#fff 0%,#e5dcff 100%); box-shadow:inset 0 -5px 0 rgba(116,72,231,.09),0 11px 16px rgba(34,15,81,.2); }
+    .guide-pages:before { left:0; border-radius:13px 5px 12px 8px; transform:skewY(8deg); }
+    .guide-pages:after { right:0; border-radius:5px 13px 8px 12px; transform:skewY(-8deg); }
+    .guide-pages i { position:absolute; z-index:1; left:51px; top:14px; width:12px; height:12px; background:var(--gold); clip-path:polygon(50% 0,61% 36%,100% 50%,61% 63%,50% 100%,39% 63%,0 50%,39% 36%); filter:drop-shadow(0 2px 1px rgba(88,47,151,.22)); }
+    .guide-pages b,.guide-pages b:after { position:absolute; z-index:1; left:15px; width:31px; height:3px; border-radius:4px; background:#b6a9eb; content:""; }
+    .guide-pages b { top:37px; } .guide-pages b:after { left:0; top:11px; width:24px; }
+    .guide-spark { position:absolute; right:21px; top:21px; width:29px; height:29px; border-radius:50% 50% 50% 4px; transform:rotate(28deg); background:linear-gradient(145deg,#ffe7a0,#f3b94e); box-shadow:inset -5px -6px 0 rgba(187,105,56,.14); }
+    .guide-spark:after { content:""; position:absolute; width:8px; height:8px; left:11px; top:10px; background:#6e3c9f; border-radius:50%; }
+    .cover-start { min-height:54px; transition:transform .12s ease,box-shadow .12s ease,filter .12s ease; }
+    .cover-start:active { transform:translateY(3px) scale(var(--press)); }
+    .profile-view,.upload-view { background:radial-gradient(circle at 91% 3%,#e2d9ff 0,transparent 27%),linear-gradient(180deg,#fbfaff,#f5f1ff); }
+    .profile-head { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+    .profile-head .brand { flex:1; color:var(--purple-deep); }
+    .profile-view h2 { text-wrap:balance; }
+    .profile-card { padding:17px; border:1px solid rgba(231,222,248,.92); border-radius:var(--radius-card); background:#fff; box-shadow:0 12px 24px rgba(67,42,133,.08); }
+    .question-block + .question-block { margin-top:20px; padding-top:18px; border-top:1px solid #eee8fa; }
+    .question-title { display:flex; align-items:center; gap:7px; margin-bottom:10px; color:var(--purple-deep); font-size:14px; font-weight:800; }
+    .question-title small { margin-left:auto; color:#9a92ac; font-size:10px; font-weight:600; }
+    .required-dot { width:6px; height:6px; border-radius:50%; background:#f29b64; }
+    .choice-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .choice { min-height:44px; padding:9px 7px; border:1px solid #e5def2; border-radius:13px; color:#645d76; background:#faf9fd; font-size:12px; font-weight:700; transition:.15s ease; }
+    .choice.selected { color:#fff; border-color:var(--purple); background:linear-gradient(115deg,#7045df,#8988f4); box-shadow:0 6px 12px rgba(105,67,215,.2); }
+    .level-list { display:grid; gap:8px; }
+    .level-choice { min-height:48px; display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e6dff2; border-radius:14px; color:#4f4862; background:#fbfaff; text-align:left; }
+    .level-choice:before { content:""; width:16px; height:16px; flex:0 0 16px; border:2px solid #cabfeb; border-radius:50%; box-shadow:inset 0 0 0 3px #fff; }
+    .level-choice.selected { color:var(--purple-deep); border-color:#a890ed; background:#f3efff; font-weight:800; }
+    .level-choice.selected:before { border-color:var(--purple); background:var(--purple); }
+    .goal-grid { display:flex; flex-wrap:wrap; gap:8px; }
+    .goal-grid .choice { min-height:44px; padding:7px 11px; border-radius:999px; }
+    .profile-note { display:flex; gap:8px; margin:12px 3px 17px; color:#8a8299; font-size:10px; line-height:1.55; }
+    .profile-note:before { content:""; width:8px; height:8px; flex:0 0 8px; margin-top:3px; border-radius:50%; background:var(--mint); }
+    .profile-view .primary { margin-top:16px; }
+    .upload-view { background:radial-gradient(circle at 91% 3%,#e2d9ff 0,transparent 27%),linear-gradient(180deg,#fbfaff,#f5f1ff); }
+    .upload-view .top { margin-bottom:22px; }
+    .upload-view .brand { color:var(--purple-deep); }
+    .upload-view .form-card { border:1px solid rgba(231,222,248,.92); border-radius:var(--radius-card); padding:16px; box-shadow:0 12px 24px rgba(67,42,133,.08); }
+    .upload-view .label { color:var(--purple-deep); font-size:14px; }
+    .context-card { margin-bottom:12px; border:1px solid rgba(231,222,248,.92); border-radius:var(--radius-card); padding:16px; background:#fff; box-shadow:0 12px 24px rgba(67,42,133,.08); }
+    .field-label { display:flex; align-items:center; gap:7px; margin-bottom:10px; color:var(--purple-deep); font-size:14px; font-weight:800; }
+    .field-label:before { content:""; width:6px; height:6px; border-radius:50%; background:#f29b64; }
+    .field-label small { margin-left:auto; color:#b65d31; font-size:9px; font-weight:800; }
+    .subject-grid,.writing-type-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; }
+    .subject-choice,.writing-type-choice { min-height:48px; padding:10px 12px; border:1px solid #e5def2; border-radius:14px; color:#5c5470; background:#faf9fd; font-size:13px; font-weight:800; transition:.15s ease; }
+    .subject-choice.selected,.writing-type-choice.selected { color:#fff; border-color:var(--purple); background:linear-gradient(115deg,#7045df,#8988f4); box-shadow:0 6px 12px rgba(105,67,215,.2); }
+    .english-type-panel { margin-top:16px; padding-top:15px; border-top:1px solid #eee8fa; animation:enter .22s ease; }
+    .conditional-panel[hidden] { display:none; }
+    .upload-steps { display:flex; gap:0; margin:16px 1px 22px; padding:0; list-style:none; }
+    .upload-steps li { flex:1; position:relative; color:#8f86ad; font-size:10px; font-weight:700; text-align:center; }
+    .upload-steps li:not(:last-child):after { content:""; position:absolute; height:1px; left:67%; right:-33%; top:10px; background:#d9cffa; }
+    .upload-steps span { display:grid; place-items:center; width:21px; height:21px; margin:0 auto 5px; border-radius:50%; color:#8b7fb2; background:#ebe5fb; font-size:10px; }
+    .upload-steps .active { color:var(--purple-deep); }
+    .upload-steps .active span { color:#fff; background:var(--purple); box-shadow:0 4px 9px rgba(116,72,231,.3); }
+    .material-stack { display:grid; gap:12px; }
+    .material-zone { min-height:132px; padding:15px; flex-direction:row; justify-content:flex-start; gap:12px; text-align:left; border-style:solid; border-color:#ddd3f7; background:linear-gradient(145deg,#fff,#f7f3ff); }
+    .material-zone .camera { flex:0 0 48px; margin:0; }
+    .material-copy { min-width:0; display:flex; flex-direction:column; }
+    .material-copy strong { display:flex; align-items:center; gap:6px; }
+    .material-copy strong:after { content:"必传"; padding:2px 5px; border-radius:999px; color:#b65d31; background:#fff0e5; font-size:9px; font-weight:800; }
+    .material-copy span { max-width:190px; line-height:1.45; }
+    .material-index { color:var(--purple); font-size:10px; font-weight:900; letter-spacing:.08em; }
+    .upload-zone { min-height:202px; border-color:#c5b8f5; background:linear-gradient(145deg,#fff,#f5f0ff); }
+    .upload-zone.material-zone { min-height:132px; }
+    .camera { width:48px; height:48px; background:#eee7ff; border:1px solid #ddd0ff; }
+    .camera svg { width:23px; height:23px; stroke:var(--purple); stroke-width:1.8; fill:none; }
+    .upload-zone:hover { border-color:var(--purple); background:#f8f5ff; }
+    .upload-zone strong { color:var(--purple-deep); }
+    .material-zone.has-file { border-color:#79ccb0; background:#f3fcf8; }
+    .material-zone.has-file .camera { color:#267e65; border-color:#b9e6d6; background:#ddf6ed; }
+    .material-zone.has-file .camera svg { stroke:#267e65; }
+    .primary { min-height:52px; border-radius:17px; background:linear-gradient(105deg,#6740d5,#8b8df8); box-shadow:0 10px 18px rgba(94,62,203,.26); transition:transform .12s ease,box-shadow .12s ease,filter .12s ease; }
+    .primary:active { transform:scale(var(--press)); box-shadow:0 5px 11px rgba(94,62,203,.22); }
+    .tips { margin-bottom:17px; color:#746d87; }
+    .tips b { color:var(--mint); }
+    .report-view .report-hero { overflow:visible; }
+    .report-seal { position:absolute; z-index:2; right:17px; top:15px; display:grid; place-items:center; width:47px; height:47px; border:1px solid #d9c6ff; border-radius:50%; color:#7957bc; background:#fbf8ff; box-shadow:0 5px 13px rgba(83,49,156,.12); font-size:8px; font-weight:900; line-height:1.05; letter-spacing:.04em; text-align:center; }
+    .report-view .report-title { box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 5px 12px rgba(87,45,192,.12); }
+    .report-view .status:before { content:""; width:9px; height:9px; background:var(--gold); clip-path:polygon(50% 0,61% 36%,100% 50%,61% 63%,50% 100%,39% 63%,0 50%,39% 36%); }
+    .report-view .course-card { min-height:86px; padding:10px; border-radius:20px; transition:transform .15s ease,box-shadow .15s ease; }
+    .report-view .course-card:active { transform:scale(.985); }
+    .course-cover,.practice-cover { flex-basis:64px; height:64px; border-radius:16px; }
+    .course-cover { background:linear-gradient(135deg,#3c247b,#6d56db); }
+    .practice-cover { color:#268268; background:linear-gradient(135deg,#dff8ed,#b9ead6); }
+    .play,.video-play { display:grid; place-items:center; padding:0; font-size:0; }
+    .play:before,.video-play:before { content:""; width:0; height:0; margin-left:3px; border-top:6px solid transparent; border-bottom:6px solid transparent; border-left:9px solid currentColor; }
+    .practice-cover svg,.course-cover svg { width:27px; height:27px; stroke:currentColor; stroke-width:1.9; fill:none; }
+    .arrow { width:44px; height:44px; padding:0; display:grid; place-items:center; font-size:0; }
+    .arrow:after { content:""; width:8px; height:8px; border-top:2px solid currentColor; border-right:2px solid currentColor; transform:rotate(45deg); }
+    .report-view .report-card { padding:17px; }
+    .report-view .report-hero { min-height:116px; display:grid; place-items:center; padding:22px; }
+    .report-view .report-title { margin:0; font-size:34px; }
+    .report-text-placeholder { min-height:240px; display:grid; place-items:center; border:1.5px dashed #cfc3ee !important; color:#8d83a4; background:rgba(255,255,255,.92); font-size:14px; font-weight:700; letter-spacing:.04em; text-align:center; }
+    .upload-view .upload-steps { margin-top:0; }
+    .report-view .section-title { color:var(--purple-deep); }
+    .course-copy small { font-size:11px; }
+    .course-copy p,.ability p { font-size:11px; }
+    .ring { background:conic-gradient(var(--purple) calc(var(--n)*1%),#eee9fb 0); }
+    .priority { border:1px solid #ffe4ca; background:#fff8f0; }
+    .priority b { color:#c96a30; }
+    .lesson-view { background:radial-gradient(circle at 94% 4%,#e7ddff 0,transparent 30%),#f8f6ff; }
+    .lesson-view .lesson-top { margin-top:3px; }
+    .lesson-view .video { border-radius:var(--radius-card); background:linear-gradient(138deg,#302060,#563bab 70%,#8f83e8); box-shadow:0 14px 24px rgba(65,39,136,.22); }
+    .lesson-view .report-card,.lesson-view .exercise { border-radius:var(--radius-card); box-shadow:0 10px 22px rgba(59,37,117,.08); }
+    .lesson-view .exercise { border-color:#d9f0e8; background:#fff; }
+    .back,.help { min-width:44px; min-height:44px; display:grid; place-items:center; }
+    .back svg,.help svg { width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none; }
+    @media (prefers-reduced-motion:reduce) { *,*:before,*:after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; } }
+    @media (max-width:1050px) { .stage{grid-template-columns:1fr 430px;gap:34px;padding:42px 8vw}.side-note{display:none} }
+    @media (max-width:710px) { body{background:#f8f7ff}.stage{display:block;padding:0}.intro{display:none}.phone{height:100svh;max-width:none;border:0;border-radius:0;box-shadow:none}.phone:before{display:none}.view{padding-top:max(27px,env(safe-area-inset-top));padding-bottom:max(25px,env(safe-area-inset-bottom))}.cover-view{padding:0}.cover-shell{min-height:100svh}.cover-top{padding-top:max(45px,calc(env(safe-area-inset-top) + 18px))}.cover-start{bottom:max(41px,calc(env(safe-area-inset-bottom) + 34px))}.cover-foot{bottom:max(14px,calc(env(safe-area-inset-bottom) + 8px))}.screen{background:#f8f7ff} }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="intro" aria-label="原型说明">
+      <div class="eyebrow"><span class="mark"></span>智卷星辰 · H5 原型</div>
+      <h1>让每一篇作文，<br>都有<em>下一步</em>。</h1>
+      <p>从拍照上传到 AI 诊断，再到一节针对性的试听课。把直播间用户的第一次学习体验，做得轻、准，也足够有收获。</p>
+      <div class="flow"><span>了解情况</span><i></i><span>上传材料</span><i></i><span>查看诊断</span><i></i><span>开始听课</span></div>
+      <div class="hint"><span>●</span><div><b>可操作原型</b><br>填写写作情况后，分别上传题目与作文正文。</div></div>
+    </section>
+
+    <section class="phone" aria-label="智卷星辰手机页面预览">
+      <div class="screen">
+        <section class="view cover-view active" id="coverView" aria-label="AI 作文能力测评封面">
+          <div class="cover-shell">
+            <div class="cover-arch" aria-hidden="true"></div>
+            <header class="cover-top"><div class="cover-brand"><span class="mark"></span>智卷星辰</div><small>AI 作文诊断</small></header>
+            <div class="stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="cover-copy"><div class="cover-chip">1 分钟开启测评</div><h2>测测你的<em>作文能力</em></h2><p>拍下你最近写的一篇作文，<br>让 AI 帮你发现下一步提升方向。</p></div>
+            <div class="cover-guide" aria-hidden="true"><span class="guide-halo"></span><span class="guide-orbit"></span><span class="guide-spark"></span><span class="guide-pages"><i></i><b></b></span></div>
+            <button class="cover-start" id="startAssessment" type="button">开始测评&nbsp; →</button>
+          </div>
+        </section>
+
+        <section class="view profile-view" id="profileView" aria-label="填写写作情况">
+          <header class="profile-head"><button class="back" type="button" data-go="coverView" aria-label="返回测评封面"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg></button><div class="brand"><span class="mark"></span>智卷星辰</div><span class="page-kicker">01 / 03</span></header>
+          <div class="profile-card">
+            <section class="question-block"><div class="question-title"><span class="required-dot"></span>你现在读几年级？</div><div class="choice-grid" role="group" aria-label="选择年级"><button class="choice" type="button" data-group="grade" data-value="初一" aria-pressed="false">初一</button><button class="choice" type="button" data-group="grade" data-value="初二" aria-pressed="false">初二</button><button class="choice" type="button" data-group="grade" data-value="初三" aria-pressed="false">初三</button><button class="choice" type="button" data-group="grade" data-value="高一" aria-pressed="false">高一</button><button class="choice" type="button" data-group="grade" data-value="高二" aria-pressed="false">高二</button><button class="choice" type="button" data-group="grade" data-value="高三" aria-pressed="false">高三</button></div></section>
+            <section class="question-block"><div class="question-title"><span class="required-dot"></span>你觉得目前作文水平怎么样？</div><div class="level-list" role="group" aria-label="选择作文水平"><button class="level-choice" type="button" data-group="level" data-value="打基础" aria-pressed="false">还在打基础，容易偏题或写不完整</button><button class="level-choice" type="button" data-group="level" data-value="能完成" aria-pressed="false">基本能完成，但发挥不太稳定</button><button class="level-choice" type="button" data-group="level" data-value="想进阶" aria-pressed="false">结构比较清晰，想进一步提升</button></div></section>
+            <section class="question-block"><div class="question-title">这次最想提升什么？<small>选填</small></div><div class="goal-grid" role="group" aria-label="选择提升方向"><button class="choice" type="button" data-group="goal" data-value="审题立意" aria-pressed="false">审题立意</button><button class="choice" type="button" data-group="goal" data-value="结构论证" aria-pressed="false">结构论证</button><button class="choice" type="button" data-group="goal" data-value="语言表达" aria-pressed="false">语言表达</button><button class="choice" type="button" data-group="goal" data-value="素材运用" aria-pressed="false">素材运用</button></div></section>
+          </div>
+          <button class="primary" id="profileNext" type="button">下一步，上传写作材料</button>
+        </section>
+
+        <section class="view upload-view" id="uploadView" aria-label="上传写作材料">
+          <header class="top"><button class="back" type="button" data-go="profileView" aria-label="返回填写写作情况"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg></button><div class="brand"><span class="mark"></span>智卷星辰</div><span aria-hidden="true" style="width:44px"></span></header>
+          <ol class="upload-steps" aria-label="测评流程"><li><span>1</span>了解你</li><li class="active"><span>2</span>上传材料</li><li><span>3</span>获得建议</li></ol>
+          <section class="context-card" aria-label="选择诊断学科">
+            <div class="field-label">选择学科<small>必选</small></div>
+            <div class="subject-grid" role="radiogroup" aria-label="选择学科"><button class="subject-choice" type="button" data-subject="语文" aria-pressed="false">语文</button><button class="subject-choice" type="button" data-subject="英语" aria-pressed="false">英语</button></div>
+            <div class="english-type-panel conditional-panel" id="englishTypePanel" hidden>
+              <div class="field-label">选择英语写作类型<small>必选</small></div>
+              <div class="writing-type-grid" role="radiogroup" aria-label="选择英语写作类型"><button class="writing-type-choice" type="button" data-writing-type="应用文" aria-pressed="false">应用文</button><button class="writing-type-choice" type="button" data-writing-type="读后续写" aria-pressed="false">读后续写</button></div>
+            </div>
+          </section>
+          <div class="form-card conditional-panel" id="materialForm" hidden>
+            <div class="label">上传写作材料</div>
+            <div class="material-stack">
+              <label class="upload-zone material-zone" id="questionZone"><div class="camera"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.2-2h7.6L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"></path><circle cx="12" cy="13" r="3.2"></circle></svg></div><div class="material-copy"><span class="material-index">MATERIAL 01</span><strong>拍作文题目</strong><span>拍清题干、材料和写作要求</span></div><input id="questionInput" type="file" accept="image/*" aria-label="上传作文题目图片"><div class="preview" id="questionPreview"><div class="sheet-preview">阅读下面的材料，根据要求写作。<br>成长并非一条直线，每一次选择都可能打开新的可能……</div><i class="scan"></i></div></label>
+              <label class="upload-zone material-zone" id="essayZone"><div class="camera"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.2-2h7.6L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"></path><circle cx="12" cy="13" r="3.2"></circle></svg></div><div class="material-copy"><span class="material-index">MATERIAL 02</span><strong>拍作文正文</strong><span>拍清标题与全文，多页可连续选择</span></div><input id="essayInput" type="file" accept="image/*" multiple aria-label="上传作文正文图片"><div class="preview" id="essayPreview"><div class="sheet-preview">以青春之我，创建青春之家庭，青春之国家，青春之民族。<br>我们在成长里看见责任，在日常中练习选择……</div><i class="scan"></i></div></label>
+            </div>
+          </div>
+          <div class="tips"><span><b>✓</b> 题目与正文需对应</span><span><b>✓</b> 图片仅用于本次诊断</span></div>
+          <button class="primary" id="diagnoseBtn" type="button">开始 AI 诊断</button>
+        </section>
+
+        <section class="view report-view" id="reportView" aria-label="作文诊断报告">
+          <header class="report-head"><button class="back" type="button" data-go="uploadView" aria-label="返回上传页"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg></button><div><h3>我的成长档案</h3><p>AI 作文诊断 · 已生成</p></div></header>
+          <section class="report-hero"><div class="report-title">潜力表达者</div></section>
+          <section class="report-card report-text-placeholder" aria-label="诊断报告文本占位">诊断报告文本占位</section>
+          <div class="recommend-label">专属提升课程</div>
+          <section class="course-card"><div class="course-cover"><button class="play" type="button" aria-label="播放课程"></button></div><div class="course-copy"><small>专属提升课 · 学会把观点讲透</small><strong>议论文：把观点讲透的 3 个方法</strong></div><button class="arrow" type="button" id="toLesson" aria-label="去听课"></button></section>
+          <section class="course-card practice-card"><div class="practice-cover"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 4.5 5 5"></path><path d="m5 19 3.7-.8L19.5 7.4a1.8 1.8 0 0 0-2.6-2.6L6.1 15.6 5 19Z"></path><path d="m13.8 7.9 2.3 2.3"></path></svg></div><div class="course-copy"><small>配套作文练习 · 学完立即巩固</small><strong>《选择与成长》议论文写作</strong></div><button class="arrow" type="button" id="exerciseBtn" aria-label="去做练习"></button></section>
+        </section>
+
+        <section class="view lesson-view" id="lessonView" aria-label="试听课程">
+          <header class="lesson-top"><button class="back" type="button" data-go="reportView" aria-label="返回报告"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg></button><div class="lesson-title"><small>写作专项 · 第 1 讲</small><h3>把观点讲透的 3 个方法</h3></div><button class="help" type="button" aria-label="更多操作"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></button></header>
+          <section class="video" id="video"><div class="teacher"><span class="avatar">陈</span>陈星辰老师 · 高中语文</div><h2>让你的议论文<br>有理有据、有力量</h2><button class="video-play" id="playVideo" type="button" aria-label="播放试听课"></button><div class="video-foot"><span>03:18</span><div class="progress"><span id="progressBar"></span></div><span>12:06</span></div></section>
+          <section class="report-card chapter"><div class="section-title"><span>本节内容</span><small>试听课</small></div><div class="chapter-list"><div class="chapter-item"><span class="num">01</span>先找准“要证明什么”<time>02:48</time></div><div class="chapter-item current"><span class="num">02</span>用“因果链”展开观点<time>04:16</time></div><div class="chapter-item"><span class="num">03</span>把例子变成论据<time>04:02</time></div></div></section>
+          <section class="exercise"><div class="section-title"><span>听完就练一练</span><small>预计 5 分钟</small></div><p>以“自律让人拥有更多选择”为观点，用一段话写出你的因果链。</p><button type="button" id="openExercise">开始专项练习 →</button></section>
+        </section>
+      </div>
+      <div class="toast" role="status" aria-live="polite" id="toast"></div>
+    </section>
+    <aside class="side-note"><span class="dot"></span><b>静态交互演示</b><br>完成写作情况与两份材料后生成诊断，再进入推荐课程和专项练习。</aside>
+  </main>
+  <script>
+    const views = document.querySelectorAll('.view');
+    const toast = document.getElementById('toast');
+    const hashToView={cover:'coverView',profile:'profileView',upload:'uploadView',report:'reportView',lesson:'lessonView'};
+    const viewToHash=Object.fromEntries(Object.entries(hashToView).map(([hash,id])=>[id,hash]));
+    function go(id,updateHash=true){
+      views.forEach(v=>v.classList.toggle('active',v.id===id));
+      document.querySelector('.screen').scrollTop=0;
+      const page=viewToHash[id]||'cover';
+      if(updateHash&&location.hash!=='#'+page) history.replaceState(null,'','#'+page);
+      if(window.parent!==window) window.parent.postMessage({type:'page-changed',page},'*');
+    }
+    function say(message){ toast.textContent=message; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2200); }
+    document.querySelectorAll('[data-go]').forEach(button=>button.addEventListener('click',()=>go(button.dataset.go)));
+    document.getElementById('startAssessment').addEventListener('click',()=>go('profileView'));
+    const profile={};
+    document.querySelectorAll('[data-group]').forEach(choice=>choice.addEventListener('click',()=>{
+      const group=choice.dataset.group;
+      const selected=choice.classList.contains('selected');
+      document.querySelectorAll(`[data-group="${group}"]`).forEach(item=>{item.classList.remove('selected');item.setAttribute('aria-pressed','false')});
+      if(group==='goal'&&selected){delete profile[group];return;}
+      choice.classList.add('selected');choice.setAttribute('aria-pressed','true');profile[group]=choice.dataset.value;
+    }));
+    document.getElementById('profileNext').addEventListener('click',()=>{
+      if(!profile.grade){say('请选择你现在的年级');return;}
+      if(!profile.level){say('请选择目前的作文水平');return;}
+      go('uploadView');
+    });
+    function bindMaterial(inputId,previewId,zoneId,name){
+      document.getElementById(inputId).addEventListener('change',event=>{
+        if(!event.target.files.length)return;
+        document.getElementById(previewId).classList.add('show');
+        document.getElementById(zoneId).classList.add('has-file');
+        say(name+'已添加');
+      });
+    }
+    bindMaterial('questionInput','questionPreview','questionZone','作文题目');
+    bindMaterial('essayInput','essayPreview','essayZone','作文正文');
+    const uploadContext={subject:'',writingType:''};
+    const englishTypePanel=document.getElementById('englishTypePanel');
+    const materialForm=document.getElementById('materialForm');
+    function renderUploadContext(){
+      const isEnglish=uploadContext.subject==='英语';
+      englishTypePanel.hidden=!isEnglish;
+      materialForm.hidden=!uploadContext.subject||(isEnglish&&!uploadContext.writingType);
+    }
+    document.querySelectorAll('[data-subject]').forEach(choice=>choice.addEventListener('click',()=>{
+      document.querySelectorAll('[data-subject]').forEach(item=>{item.classList.remove('selected');item.setAttribute('aria-pressed','false')});
+      choice.classList.add('selected');choice.setAttribute('aria-pressed','true');
+      uploadContext.subject=choice.dataset.subject;uploadContext.writingType='';
+      document.querySelectorAll('[data-writing-type]').forEach(item=>{item.classList.remove('selected');item.setAttribute('aria-pressed','false')});
+      renderUploadContext();
+    }));
+    document.querySelectorAll('[data-writing-type]').forEach(choice=>choice.addEventListener('click',()=>{
+      document.querySelectorAll('[data-writing-type]').forEach(item=>{item.classList.remove('selected');item.setAttribute('aria-pressed','false')});
+      choice.classList.add('selected');choice.setAttribute('aria-pressed','true');uploadContext.writingType=choice.dataset.writingType;renderUploadContext();
+    }));
+    document.getElementById('diagnoseBtn').addEventListener('click',()=>{
+      if(!uploadContext.subject){say('请先选择学科');return;}
+      if(uploadContext.subject==='英语'&&!uploadContext.writingType){say('请选择英语写作类型');return;}
+      if(!document.getElementById('questionInput').files.length){say('请先上传作文题目');return;}
+      if(!document.getElementById('essayInput').files.length){say('请再上传作文正文');return;}
+      const btn=document.getElementById('diagnoseBtn');btn.textContent='正在生成你的诊断…';btn.disabled=true;setTimeout(()=>{btn.textContent='开始 AI 诊断';btn.disabled=false;go('reportView')},650)
+    });
+    document.getElementById('toLesson').addEventListener('click',()=>go('lessonView'));
+    document.querySelector('.course-cover .play').addEventListener('click',()=>go('lessonView'));
+    document.getElementById('exerciseBtn').addEventListener('click',()=>say('已为你打开「论证展开」专项练习'));
+    document.getElementById('openExercise').addEventListener('click',()=>say('练习已准备好，写完即可获得 AI 点评'));
+    document.getElementById('playVideo').addEventListener('click',()=>{const b=document.getElementById('playVideo');b.textContent='Ⅱ';document.getElementById('progressBar').style.width='46%';say('正在播放试听课');});
+    function syncHash(){
+      const hash=location.hash.slice(1);
+      const queryPage=new URLSearchParams(location.search).get('page');
+      const direct=document.getElementById(hash);
+      go(hashToView[hash]||hashToView[queryPage]||(direct?.classList.contains('view')?direct.id:'coverView'),false);
+    }
+    window.addEventListener('hashchange',syncHash);
+    window.addEventListener('message',event=>{
+      if(event.source!==window.parent||event.data?.type!=='navigate') return;
+      const target=hashToView[event.data.page];
+      if(target) go(target);
+    });
+    syncHash();
+  </script>
+</body>
+</html>

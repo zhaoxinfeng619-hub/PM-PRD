@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>学院 AI 作文诊断 H5 · 交互流程图</title>
+<style>
+  :root { --flow-accent:#5b5bd6; --node-w:210px; --node-h:455px; }
+  * { box-sizing:border-box; }
+  body {
+    font-family:"Microsoft YaHei","微软雅黑","PingFang SC","Hiragino Sans GB",sans-serif;
+    background:#f8f8fc; padding:32px 24px; margin:0; color:#30285b;
+  }
+  h1 { font-size:22px; font-weight:700; color:#30285b; text-align:center; margin:0 0 6px; }
+  .subtitle { font-size:13px; color:#8b86a3; text-align:center; margin:0 0 22px; }
+
+  .stage { max-width:2200px; margin:0 auto; }
+  .chart-container.screenflow-canvas {
+    position:relative; background:#fff; border-radius:14px; padding:0;
+    border:1px solid #ece9f6; box-shadow:0 2px 12px rgba(48,40,91,.05);
+    transform-origin:top left;
+  }
+  .canvas-wrap { overflow:auto; }
+
+  .flow-node { position:absolute; width:var(--node-w); }
+  .node-frame {
+    width:var(--node-w); height:var(--node-h); overflow:hidden;
+    border:1px solid #ddd8ef; border-radius:12px; background:#f6f4fd; position:relative;
+  }
+  .node-frame iframe { border:0; transform-origin:top left; pointer-events:none; }
+  .node-label { margin-top:7px; font-size:13px; font-weight:700; color:#3b357a; text-align:center; line-height:1.45; }
+  .node-badge {
+    position:absolute; left:50%; top:0; transform:translate(-50%,-50%); z-index:3;
+    background:#efeaff; border:1px solid #cbc4e7; color:#4b3bc0;
+    border-radius:999px; padding:2px 10px; font-size:11.5px; font-weight:700; white-space:nowrap;
+  }
+  .node-badge.alt { background:#e8f5e9; border-color:#a9d5ab; color:#26703f; }
+
+  .screenflow-svg { position:absolute; left:0; top:0; pointer-events:none; overflow:visible; }
+  .flow-edge { fill:none; stroke:#8d82b1; stroke-width:1.8; }
+  .edge-label {
+    position:absolute; background:#fff; border:1px solid #e6e2f4; border-radius:7px;
+    padding:4px 9px; font-size:11.5px; line-height:1.35; color:#4a4470; white-space:nowrap;
+    transform:translate(-50%,-50%); z-index:2;
+  }
+
+  .state-legend {
+    position:absolute; background:#faf9ff; border:1px solid #e6e2f4; border-radius:12px;
+    padding:16px 20px; width:auto;
+  }
+  .state-legend h4 { margin:0 0 10px; font-size:13.5px; color:#3b357a; }
+  .state-legend ul { margin:0; padding-left:18px; }
+  .state-legend li { font-size:12.5px; color:#5d5780; line-height:1.85; }
+  .state-legend code { background:#fff; border:1px solid #e6e2f4; border-radius:5px; padding:1px 6px; font-size:12px; color:#4b3bc0; }
+
+  .zoom-bar {
+    position:fixed; right:22px; top:18px; z-index:50; display:flex; align-items:center; gap:6px;
+    background:#fff; border:1px solid #e0dcf2; border-radius:12px; padding:8px 10px;
+    box-shadow:0 6px 20px rgba(48,40,91,.12);
+  }
+  .zoom-bar button {
+    background:#f5f3ff; color:#3b357a; border:1px solid #ddd8ef; border-radius:8px;
+    padding:5px 11px; font-size:12.5px; cursor:pointer; line-height:1.6;
+  }
+  .zoom-bar button:hover { border-color:var(--flow-accent); }
+  .zoom-bar .pct { min-width:74px; text-align:center; font-size:12.5px; color:#5d5780; font-variant-numeric:tabular-nums; }
+  .audit-pill { position:fixed; left:22px; top:18px; z-index:50; font-size:12.5px; padding:7px 13px; border-radius:999px; border:1px solid #cbc4e7; background:#faf9ff; color:#4b3bc0; }
+  .audit-pill.bad { border-color:#e0a3a3; background:#fdf1f1; color:#a33; }
+  body.embedded h1, body.embedded .subtitle { display:none; }
+</style>
+</head>
+<body>
+<h1>学院 AI 作文诊断 H5 · 交互流程图</h1>
+<p class="subtitle">五个核心界面 + 上传页「材料齐全」状态变体，箭头为跳转触发动作；拖动画布可平移，右上角可缩放与下载整图</p>
+
+<div class="stage"><div class="canvas-wrap"><div class="chart-container screenflow-canvas" id="canvas" style="width:2090px;height:1600px;"></div></div></div>
+
+<div class="zoom-bar">
+  <button class="export-btn" type="button" id="exportBtn">📸 下载图片</button>
+  <button type="button" id="zoomIn">＋</button>
+  <span class="pct" id="zoomPct">100%</span>
+  <button type="button" id="zoomOut">－</button>
+  <button type="button" id="zoomFit">适配</button>
+</div>
+<div class="audit-pill" id="auditPill">布局检查：待运行</div>
+
+<script>
+/* ── 导出前拦截：必须在导出客户端之前注册，才能抢在它的捕获监听前执行 ── */
+document.addEventListener('click', function (e) {
+  var btn = e.target && e.target.closest && e.target.closest('.export-btn');
+  if (!btn) return;
+  if (window.__auditOk && !window.__auditOk()) {
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    alert('布局检查未通过，请先修复：\n' + (window.__auditErrors || []).join('\n'));
+  }
+}, true);
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var CANVAS_W = 2090, CANVAS_H = 1600, PAD = 40;
+  var PROTOTYPE = '../原型/学院AI作文诊断H5-prototype.html';
+  var NODE_W = 210, NODE_H = 455;
+  var canvas = document.getElementById('canvas');
+
+  /* 一行 = 一个界面 / 一个状态变体。坐标即画布内像素坐标。 */
+  var NODES = [
+    { id:'n-cover',    x:40,   y:200, page:'cover',   label:'P01 测评封面',  badge:'' },
+    { id:'n-profile',  x:400,  y:200, page:'profile', label:'P02 写作情况',  badge:'' },
+    { id:'n-upload',   x:760,  y:200, page:'upload',  label:'P03 上传材料',  badge:'待选学科 / 材料未齐', alt:true },
+    { id:'n-ready',    x:760,  y:906, page:'upload',  label:'P03 上传材料',  badge:'学科上下文 + 两类材料齐全' },
+    { id:'n-report',   x:1480, y:200, page:'report',  label:'P04 诊断报告',  badge:'' },
+    { id:'n-lesson',   x:1840, y:200, page:'lesson',  label:'P05 试听课程',  badge:'' }
+  ];
+
+  /* 每条边：from/to = 节点 id；label = 触发动作；bend = 同侧回流轨道外扩距离；
+     fromOffset/toOffset = 锚点沿边平移，防止同侧多线共用同一锚点。 */
+  var EDGES = [
+    { id:'e1', from:'n-cover',   to:'n-profile', label:'点击「开始测评」',   fromSide:'right', toSide:'left' },
+    { id:'e2', from:'n-profile', to:'n-upload',  label:'必填校验通过',       fromSide:'right', toSide:'left' },
+    { id:'e3', from:'n-upload',  to:'n-ready',   label:'语文直接上传；英语选类型后上传；全部齐全', fromSide:'bottom', toSide:'top' },
+    { id:'e4', from:'n-ready',   to:'n-report',  label:'发起 AI 诊断，识别通过', fromSide:'right', toSide:'bottom' },
+    { id:'e5', from:'n-report',  to:'n-lesson',  label:'点击课程卡或箭头',   fromSide:'right', toSide:'left' },
+    { id:'b1', from:'n-profile', to:'n-cover',   label:'点「返回」',         fromSide:'top', toSide:'top', bend:140, fromOffset:-30, toOffset:30 },
+    { id:'b2', from:'n-upload',  to:'n-profile', label:'点「返回」',         fromSide:'top', toSide:'top', bend:110, fromOffset:-30, toOffset:30 },
+    { id:'b3', from:'n-report',  to:'n-upload',  label:'点「返回」，保留材料与诊断结果', fromSide:'top', toSide:'top', bend:80, fromOffset:-30, toOffset:30 },
+    { id:'b4', from:'n-lesson',  to:'n-report',  label:'点「返回」',         fromSide:'top', toSide:'top', bend:50, fromOffset:-30, toOffset:30 }
+  ];
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  /* ── 建节点 ── */
+  var nodeEls = {};
+  NODES.forEach(function (n) {
+    var box = document.createElement('div');
+    box.className = 'flow-node';
+    box.id = n.id;
+    box.style.left = n.x + 'px';
+    box.style.top = n.y + 'px';
+    box.innerHTML =
+      (n.badge ? '<span class="node-badge' + (n.alt ? ' alt' : '') + '">' + n.badge + '</span>' : '') +
+      '<div class="node-frame">' +
+        '<iframe scrolling="no" tabindex="-1" title="' + n.label + '" src="' + PROTOTYPE + '#' + n.page + '"></iframe>' +
+      '</div>' +
+      '<div class="node-label">' + n.label + '</div>';
+    canvas.appendChild(box);
+    nodeEls[n.id] = box;
+  });
+
+  /* iframe 等比缩放：显式写宽高 + transform:scale，禁 CSS 变量 calc */
+  function scaleFrames() {
+    Array.prototype.forEach.call(canvas.querySelectorAll('.node-frame'), function (frame) {
+      var f = frame.querySelector('iframe');
+      if (!f) return;
+      var w = 390, h = 844, s = NODE_W / w;
+      f.style.width = w + 'px';
+      f.style.height = h + 'px';
+      f.style.transform = 'scale(' + s + ')';
+    });
+  }
+  scaleFrames();
+
+  /* ── 连线层 ── */
+  var svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'screenflow-svg');
+  svg.setAttribute('width', CANVAS_W);
+  svg.setAttribute('height', CANVAS_H);
+  var defs = document.createElementNS(SVG_NS, 'defs');
+  defs.innerHTML =
+    '<marker id="sf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
+    '<path d="M0,1 L9,5 L0,9 z" fill="#8d82b1"></path></marker>';
+  svg.appendChild(defs);
+  canvas.appendChild(svg);
+
+  function anchor(node, side, offset) {
+    var o = offset || 0;
+    if (side === 'right')  return { x: node.x + NODE_W, y: node.y + NODE_H / 2 + o };
+    if (side === 'left')   return { x: node.x,           y: node.y + NODE_H / 2 + o };
+    if (side === 'top')    return { x: node.x + NODE_W / 2 + o, y: node.y };
+    return { x: node.x + NODE_W / 2 + o, y: node.y + NODE_H };
+  }
+
+  /* 直角折线（Manhattan）路由：逐段只能水平或垂直 */
+  function route(e, a, b) {
+    var pts = [a], mx, my;
+    if (e.fromSide === 'right' && e.toSide === 'left') {
+      if (Math.abs(a.y - b.y) < 1) { pts.push(b); }
+      else { mx = (a.x + b.x) / 2; pts.push({ x: mx, y: a.y }, { x: mx, y: b.y }, b); }
+    } else if (e.fromSide === 'right' && e.toSide === 'bottom') {
+      pts.push({ x: b.x, y: a.y }, b);
+    } else if (e.fromSide === 'right' && e.toSide === 'top') {
+      pts.push({ x: b.x, y: a.y }, b);
+    } else if (e.fromSide === 'bottom' && e.toSide === 'top') {
+      if (Math.abs(a.x - b.x) < 1) { pts.push(b); }
+      else { my = (a.y + b.y) / 2; pts.push({ x: a.x, y: my }, { x: b.x, y: my }, b); }
+    } else if (e.fromSide === 'top' && e.toSide === 'top') {
+      var railY = Math.min(a.y, b.y) - (e.bend || 80);
+      pts.push({ x: a.x, y: railY }, { x: b.x, y: railY }, b);
+    } else if (e.fromSide === 'bottom' && e.toSide === 'bottom') {
+      var ry = Math.max(a.y, b.y) + (e.bend || 80);
+      pts.push({ x: a.x, y: ry }, { x: b.x, y: ry }, b);
+    } else {
+      pts.push({ x: b.x, y: a.y }, b);
+    }
+    return pts;
+  }
+
+  var labelEls = [];
+  function draw() {
+    Array.prototype.forEach.call(svg.querySelectorAll('path.flow-edge'), function (p) { p.remove(); });
+    labelEls.forEach(function (l) { l.remove(); });
+    labelEls = [];
+
+    EDGES.forEach(function (e) {
+      var from = NODES.filter(function (n) { return n.id === e.from; })[0];
+      var to = NODES.filter(function (n) { return n.id === e.to; })[0];
+      var a = anchor(from, e.fromSide, e.fromOffset);
+      var b = anchor(to, e.toSide, e.toOffset);
+      var pts = route(e, a, b);
+
+      var d = 'M' + pts.map(function (p) { return p.x + ' ' + p.y; }).join(' L');
+      var path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('class', 'flow-edge');
+      path.setAttribute('d', d);
+      path.setAttribute('marker-end', 'url(#sf-arrow)');
+      path.dataset.edge = e.id;
+      path.dataset.from = e.from;
+      path.dataset.to = e.to;
+      svg.appendChild(path);
+
+      /* 标签放最长一段的中点 */
+      var best = { len: -1, mid: { x: a.x, y: a.y } };
+      for (var i = 0; i < pts.length - 1; i++) {
+        var dx = pts[i + 1].x - pts[i].x, dy = pts[i + 1].y - pts[i].y;
+        var len = Math.abs(dx) + Math.abs(dy);
+        if (len > best.len) best = { len: len, mid: { x: (pts[i].x + pts[i + 1].x) / 2, y: (pts[i].y + pts[i + 1].y) / 2 } };
+      }
+      var lab = document.createElement('div');
+      lab.className = 'edge-label';
+      lab.dataset.edge = e.id;          /* 关键：审计时用来排除本边自己的标签 */
+      lab.textContent = e.label;
+      lab.style.left = best.mid.x + 'px';
+      lab.style.top = best.mid.y + 'px';
+      canvas.appendChild(lab);
+      labelEls.push(lab);
+    });
+  }
+  draw();
+
+  /* ── 状态机图例（同样进审计范围） ── */
+  var legend = document.createElement('div');
+  legend.className = 'flow-node state-legend';
+  legend.id = 'state-legend';
+  legend.style.left = '40px';
+  legend.style.top = '1442px';
+  legend.style.width = '900px';
+  legend.innerHTML =
+    '<h4>状态机与准入图例</h4><ul>' +
+    '<li><b>链路准入：</b><code>未授权</code> → <code>已授权并绑定手机号</code>（扫码后的第一个页面、点击「开始测评」之前完成，未完成不放行）</li>' +
+    '<li><b>材料准备：</b><code>待提交</code> → <code>材料不全</code>（仅上传题目或仅上传正文）→ <code>可提交</code>（两类齐全，按钮可点）→ <code>诊断中</code>（按钮禁用，文案「正在生成你的诊断…」）</li>' +
+    '<li><b>诊断任务：</b><code>诊断中</code> → <code>已生成</code>（进入 P04 报告）／<code>诊断失败</code>（识别失败或服务异常，保留材料并允许重新诊断；处理耗时较长时持续展示处理中，不设超时阈值）</li>' +
+    '<li><b>写作情况：</b><code>未完成</code>（必填项缺失，停留本页）→ <code>已完成</code>（可进入材料上传）</li>' +
+    '<li><b>试听播放：</b><code>未播放</code> → <code>播放中</code> → <code>已暂停</code>（切后台、来电或音频抢占自动暂停）→ <code>试听结束</code>（本链路结束，由私域老师线下承接）</li>' +
+    '</ul>';
+  canvas.appendChild(legend);
+
+  /* ── 几何审计 ── */
+  function auditFlow(cv) {
+    var r = function (el) {
+      var bb = el.getBoundingClientRect(), c = cv.getBoundingClientRect();
+      return { x: bb.x - c.x, y: bb.y - c.y, w: bb.width, h: bb.height, id: el.id || el.dataset.for || el.dataset.edge };
+    };
+    var nodes = Array.prototype.slice.call(cv.querySelectorAll('.flow-node')).map(r);
+    var labels = Array.prototype.slice.call(cv.querySelectorAll('.edge-label, .edge-label-bg')).map(r);
+    var edges = Array.prototype.slice.call(cv.querySelectorAll('.flow-edge'));
+    var errs = [];
+    var hit = function (a, b, pad) {
+      pad = pad || 0;
+      return a.x - pad < b.x + b.w && a.x + a.w + pad > b.x && a.y - pad < b.y + b.h && a.y + a.h + pad > b.y;
+    };
+    labels.forEach(function (l) {
+      nodes.forEach(function (n) { if (hit(l, n, 0)) errs.push('标签压节点：' + l.id + ' → ' + n.id); });
+      labels.forEach(function (o) { if (l !== o && hit(l, o, 0)) errs.push('标签重叠：' + l.id + ' / ' + o.id); });
+    });
+    var cw = cv.clientWidth, ch = cv.clientHeight;
+    nodes.concat(labels).forEach(function (n) {
+      if (n.x < 0 || n.y < 0 || n.x + n.w > cw || n.y + n.h > ch) errs.push('画布越界：' + n.id);
+    });
+    edges.forEach(function (e) {
+      var L = e.getTotalLength(), m = e.getScreenCTM();
+      if (!m) return;
+      var others = nodes.concat(labels).filter(function (b) {
+        return b.id !== e.dataset.from && b.id !== e.dataset.to && b.id !== e.dataset.edge;
+      });
+      for (var p = 0; p <= L; p += 2) {
+        var pt = e.getPointAtLength(p).matrixTransform(m), c = cv.getBoundingClientRect();
+        var q = { x: pt.x - c.x, y: pt.y - c.y };
+        others.forEach(function (b) {
+          if (q.x > b.x - 1 && q.x < b.x + b.w + 1 && q.y > b.y - 1 && q.y < b.y + b.h + 1) {
+            errs.push('连线遮挡：' + e.dataset.edge + ' / ' + b.id);
+          }
+        });
+      }
+    });
+    return { ok: errs.length === 0, errors: Array.from(new Set(errs)) };
+  }
+
+  /* 让画布去适应内容：按所有节点/图例/标签的 right/bottom + 30 反推，越界问题从根上消失 */
+  function autoSize() {
+    var prev = canvas.style.transform;
+    canvas.style.transform = 'none';
+    var c = canvas.getBoundingClientRect(), maxR = 0, maxB = 0;
+    Array.prototype.forEach.call(canvas.querySelectorAll('.flow-node, .edge-label'), function (el) {
+      var b = el.getBoundingClientRect();
+      maxR = Math.max(maxR, b.right - c.left);
+      maxB = Math.max(maxB, b.bottom - c.top);
+    });
+    canvas.style.transform = prev;
+    CANVAS_W = Math.ceil(maxR) + PAD;
+    CANVAS_H = Math.ceil(maxB) + PAD;
+    canvas.style.width = CANVAS_W + 'px';
+    canvas.style.height = CANVAS_H + 'px';
+    svg.setAttribute('width', CANVAS_W);
+    svg.setAttribute('height', CANVAS_H);
+  }
+
+  var pill = document.getElementById('auditPill');
+  function runAudit() {
+    var prev = canvas.style.transform;
+    canvas.style.transform = 'none';          /* 审计必须在 1:1 坐标下做 */
+    var a = auditFlow(canvas);
+    canvas.style.transform = prev;
+    window.__auditOk = function () { return a.ok; };
+    window.__auditErrors = a.errors;
+    pill.textContent = a.ok ? '布局检查：通过 ✓' : '布局检查：' + a.errors.length + ' 项未过';
+    pill.className = 'audit-pill' + (a.ok ? '' : ' bad');
+    if (!a.ok) console.warn('[screenflow audit]', a.errors);
+    return a;
+  }
+
+  /* ── 缩放 ── */
+  var zoom = null;   /* null = 适配宽度 */
+  var wrap = canvas.parentElement;
+  function applyZoom() {
+    var fit = (wrap.clientWidth - 4) / CANVAS_W;
+    var s = (zoom === null) ? Math.min(1, fit) : zoom;
+    canvas.style.transform = 'scale(' + s + ')';
+    wrap.style.height = Math.round(CANVAS_H * s) + 'px';
+    document.getElementById('zoomPct').textContent = Math.round(s * 100) + '%' + (zoom === null ? ' · 适配' : '');
+    if (window.parent !== window) {
+      requestAnimationFrame(function () {
+        window.parent.postMessage({ type:'frame-height', h: document.documentElement.scrollHeight }, '*');
+      });
+    }
+  }
+  var STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+  function curScale() {
+    if (zoom !== null) return zoom;
+    return Math.min(1, (wrap.clientWidth - 4) / CANVAS_W);
+  }
+  function step(dir) {
+    var now = curScale(), next;
+    if (dir > 0) next = STEPS.filter(function (s) { return s > now + 0.001; })[0];
+    else next = STEPS.slice().reverse().filter(function (s) { return s < now - 0.001; })[0];
+    zoom = (next == null) ? Math.min(3, Math.max(0.25, now)) : next;
+    applyZoom();
+  }
+  document.getElementById('zoomIn').addEventListener('click', function () { step(1); });
+  document.getElementById('zoomOut').addEventListener('click', function () { step(-1); });
+  document.getElementById('zoomFit').addEventListener('click', function () { zoom = null; applyZoom(); });
+
+  /* 按住画布拖拽平移（节点 iframe 已 pointer-events:none，整个画布可抓取） */
+  var drag = null;
+  wrap.addEventListener('mousedown', function (e) {
+    if (e.target.closest && e.target.closest('.zoom-bar')) return;
+    drag = { x: e.clientX, y: e.clientY, l: wrap.scrollLeft, t: wrap.scrollTop };
+    wrap.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!drag) return;
+    wrap.scrollLeft = drag.l - (e.clientX - drag.x);
+    wrap.scrollTop = drag.t - (e.clientY - drag.y);
+  });
+  window.addEventListener('mouseup', function () { drag = null; wrap.style.cursor = ''; });
+
+  /* ── 初始化 ── */
+  if (window.self !== window.top) document.body.classList.add('embedded');
+  else zoom = 1;                       /* 独立打开默认 100%：导出服务按原尺寸截图 */
+  window.addEventListener('resize', applyZoom);
+  window.addEventListener('load', function () {
+    scaleFrames(); draw(); autoSize(); applyZoom(); runAudit();
+    setTimeout(function () { scaleFrames(); draw(); autoSize(); applyZoom(); runAudit(); }, 500);
+  });
+  autoSize(); applyZoom();
+  setTimeout(function () { scaleFrames(); draw(); autoSize(); applyZoom(); runAudit(); }, 300);
+  window.auditFlowDebug = function () { return runAudit(); };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 作文诊断 H5 · AI 算法侧提需文档</title>
+<style>
+  :root{
+    --pm-accent:#5b5bd6;
+    --pm-ink:#1f2937;
+    --pm-heading:color-mix(in srgb, var(--pm-accent) 38%, #1f2937);
+    --pm-line:color-mix(in srgb, var(--pm-accent) 13%, #fff);
+    --pm-soft:color-mix(in srgb, var(--pm-accent) 9%, #fff);
+    --warn:#b45309; --warn-soft:#fffbeb; --warn-line:#fcd34d;
+    --risk:#b91c1c; --risk-soft:#fef2f2; --risk-line:#fca5a5;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    font-family:"Microsoft YaHei","微软雅黑","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC",sans-serif;
+    margin:0; padding:36px 28px 90px; background:#f8f8fc; color:var(--pm-ink);
+    line-height:1.75; font-size:14px;
+  }
+  #doc{ max-width:1040px; margin:0 auto; }
+  h1.doc-title{ font-size:29px; font-weight:800; letter-spacing:.01em; margin:0 0 8px; color:var(--pm-heading); }
+  p.doc-sub{ margin:0 0 26px; color:#6b7280; font-size:13.5px; }
+  h2{
+    font-size:20px; font-weight:800; margin:44px 0 14px; padding-left:12px;
+    border-left:5px solid var(--pm-accent); color:var(--pm-heading); line-height:1.4;
+  }
+  h3{ font-size:15.5px; font-weight:700; margin:26px 0 10px; color:var(--pm-heading); }
+  p{ margin:9px 0; }
+  ul,ol{ margin:9px 0; padding-left:22px; }
+  li{ margin:5px 0; }
+  code{ background:#f1f0ff; color:#4c46b8; padding:1px 6px; border-radius:4px; font-size:12.5px;
+        font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  strong{ color:#111827; }
+  table{ width:100%; border-collapse:collapse; margin:14px 0; font-size:13.2px; table-layout:fixed; }
+  th,td{ border:1px solid var(--pm-line); padding:8px 11px; text-align:left; vertical-align:top; word-break:break-word; }
+  th{ background:var(--pm-soft); font-weight:700; color:var(--pm-heading); }
+  tbody tr:nth-child(even) td{ background:#fcfcff; }
+  .meta-table td:first-child{ width:150px; background:var(--pm-soft); font-weight:700; color:var(--pm-heading); }
+  .callout{ border:1px solid var(--warn-line); background:var(--warn-soft); border-left:5px solid var(--warn);
+            border-radius:8px; padding:12px 16px; margin:15px 0; }
+  .conflict{ border:1px solid var(--risk-line); background:var(--risk-soft); border-left:5px solid var(--risk);
+             border-radius:8px; padding:12px 16px; margin:15px 0; }
+  .callout .t,.conflict .t{ display:block; font-weight:800; margin-bottom:4px; }
+  .callout .t{ color:var(--warn); } .conflict .t{ color:var(--risk); }
+  .tag{ display:inline-block; font-size:11.5px; font-weight:700; padding:1px 7px; border-radius:20px;
+        margin-right:5px; vertical-align:1px; }
+  .p0{ background:#fde2e2; color:#a51c1c; } .p1{ background:#fef0d6; color:#94590a; }
+  .fix{ background:#e8e3fb; color:#4c3fae; }
+  .diagram{ background:#fff; border:1px solid var(--pm-line); border-radius:12px; padding:8px 10px; margin:18px 0; overflow-x:auto; }
+  .diagram svg{ display:block; margin:0 auto; }
+  .toc{ background:#fff; border:1px solid var(--pm-line); border-radius:10px; padding:14px 20px; margin:0 0 30px; }
+  .toc ol{ margin:0; padding-left:20px; columns:2; column-gap:32px; list-style:decimal; }
+  .toc li{ margin:3px 0; font-size:13px; }
+  .toc a{ color:#4c46b8; text-decoration:none; }
+  .toc a:hover{ text-decoration:underline; }
+  .small{ font-size:12.6px; color:#6b7280; }
+  hr{ border:none; border-top:1px solid var(--pm-line); margin:34px 0; }
+  @media print{
+    body{ background:#fff; padding:0; font-size:12px; }
+    h2{ break-after:avoid; } table,.callout,.conflict,.diagram{ break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div id="doc">
+
+  <h1 class="doc-title">AI 作文诊断 H5 · AI 算法侧提需文档</h1>
+  <p class="doc-sub">提需方：产品 &nbsp;·&nbsp; 接收方：AI 算法组 &nbsp;·&nbsp; 学科范围：语文 + 英语 &nbsp;·&nbsp; 版本 V1.1</p>
+
+  <table class="meta-table">
+    <tr><td>项目名称</td><td>AI 作文诊断 H5</td></tr>
+    <tr><td>品牌项目</td><td>智卷星辰</td></tr>
+    <tr><td>文档类型</td><td>对外提需文档（AI 算法侧）</td></tr>
+    <tr><td>提需方</td><td>产品</td></tr>
+    <tr><td>接收方</td><td>AI 算法组</td></tr>
+    <tr><td>配合方</td><td>语文教研组、英语教研组（提供维度口径与知识点标签体系）</td></tr>
+    <tr><td>面向学段</td><td>初中（初一至初三）、高中（高一至高三）</td></tr>
+    <tr><td>学科范围</td><td><strong>语文、英语两个学科均需支持</strong>（同一套链路，维度与评分口径分学科）</td></tr>
+    <tr><td>承载端</td><td>移动端 H5，主要在微信内打开</td></tr>
+    <tr><td>提出日期</td><td>2026-09-16</td></tr>
+    <tr><td>期望评审时间</td><td>2026-09-16</td></tr>
+    <tr><td>关联文档</td><td>《AI 作文诊断 H5 · 产品需求文档（PRD）》<br>交互原型：<code>学院AI作文诊断H5/原型/学院AI作文诊断H5-prototype.html</code></td></tr>
+  </table>
+
+  <div class="toc">
+    <ol>
+      <li><a href="#s1">一句话说清要什么</a></li>
+      <li><a href="#s2">背景与目标</a></li>
+      <li><a href="#s3">需求总览：两个能力</a></li>
+      <li><a href="#s4">能力一：作文诊断报告生成</a></li>
+      <li><a href="#s5">能力二：课程与试题推荐</a></li>
+      <li><a href="#s6">上游依赖（需教研侧先给）</a></li>
+      <li><a href="#s7">验收标准</a></li>
+      <li><a href="#s8">交付物与优先顺序</a></li>
+      <li><a href="#s9">待确认清单</a></li>
+    </ol>
+  </div>
+
+  <h2 id="s1">一、一句话说清要什么</h2>
+  <p>学生上传<strong>作文题目图 + 作文正文图</strong>，再带上他填的<strong>年级、学科、作文水平自评</strong>。请算法侧做两件事：</p>
+  <ol>
+    <li><strong>生成诊断报告</strong>——把图片转成文字，读懂这篇作文，产出一份包含「<strong>称号</strong> + <strong>能力维度数据</strong> + <strong>文字性点评</strong>」的报告。</li>
+    <li><strong>生成推荐内容</strong>——拿诊断结果去判断<strong>缺哪个知识点</strong>，从已有课程与试题库里挑出对应知识点的<strong>课程和试题</strong>。</li>
+  </ol>
+  <p class="small">报告要能被前端直接渲染成图表和卡片，不需要前端再加工；推荐要能直接落到具体的课程和练习上。</p>
+
+  <h2 id="s2">二、背景与目标</h2>
+  <p>直播间首次到访的初高中学生，听完一段作文讲解后，手上往往正放着一篇刚写完的作文。他们知道「要多练」，但不知道<strong>手上这一篇具体差在哪、下一步该练什么</strong>。本需求就是要在一次轻量体验里把这个问题回答掉。</p>
+  <p>对算法侧而言，本需求是<strong>整条链路的成败点</strong>：前端页面已经定型，用户在点下「开始 AI 诊断」之后到看到报告之间的全部体验，都由算法侧的两个能力决定。识别不准或报告空泛，前端做得再好也留不住人。</p>
+  <div class="callout">
+    <span class="t">需要算法侧特别理解的两点</span>
+    ① <strong>输出即界面。</strong>报告的文字会原样呈现在学生和家长眼前，因此不只是「准确」的问题，还要「能读、不伤人、不像机器」——文案口径约束见 4.4。<br>
+    ② <strong>这是手写体。</strong>作文纸是学生手写后拍照上传，不是印刷体扫描，识别难度显著高于常规 OCR，这是本需求最大的技术风险，见 4.6。
+  </div>
+
+  <h2 id="s3">三、需求总览：两个能力</h2>
+
+  <div class="diagram">
+    <svg viewBox="0 0 960 600" width="100%" style="max-width:940px" role="img" aria-label="诊断与推荐链路总览">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L7,3 z" fill="#8b86c9"/>
+        </marker>
+        <style>
+          .bx{ fill:#fff; stroke:#c9c5ea; stroke-width:1.4; rx:9; }
+          .bxg{ fill:#f6f5ff; stroke:#c9c5ea; stroke-width:1.4; rx:9; }
+          .bxa{ fill:#f3f0fe; stroke:#8b83dd; stroke-width:1.8; rx:9; }
+          .bxo{ fill:#f0fdf4; stroke:#86efac; stroke-width:1.6; rx:9; }
+          .t{ font-family:"Microsoft YaHei","PingFang SC",sans-serif; fill:#1f2937; font-size:13px; }
+          .tb{ font-weight:700; fill:#3b3486; font-size:13.5px; }
+          .ts{ font-size:11.5px; fill:#6b7280; }
+          .ln{ stroke:#8b86c9; stroke-width:1.6; fill:none; marker-end:url(#ar); }
+          .lane{ font-size:11.5px; fill:#9aa0ae; font-weight:700; letter-spacing:.08em; }
+        </style>
+      </defs>
+
+      <text class="lane" x="14" y="42">输入</text>
+      <text class="lane" x="14" y="176">识别</text>
+      <text class="lane" x="14" y="300">理解</text>
+      <text class="lane" x="14" y="424">决策</text>
+      <text class="lane" x="14" y="548">输出</text>
+
+      <rect class="bxg" x="80" y="20" width="230" height="46"/>
+      <text class="t" x="98" y="41">写作情况</text>
+      <text class="ts" x="98" y="57">年级 · 学科 · 自评水平 · 期望方向</text>
+
+      <rect class="bxg" x="330" y="20" width="180" height="46"/>
+      <text class="t" x="348" y="41">作文题目图</text>
+      <text class="ts" x="348" y="57">必传 · 1 张</text>
+
+      <rect class="bxg" x="530" y="20" width="180" height="46"/>
+      <text class="t" x="548" y="41">作文正文图</text>
+      <text class="ts" x="548" y="57">必传 · 支持多页</text>
+
+      <rect class="bxa" x="80" y="132" width="630" height="66"/>
+      <text class="tb" x="98" y="156">① 图文转写（算法侧自行完成）</text>
+      <text class="t" x="98" y="178">手写识别 → 题目文本 + 正文文本，并做句子切分与编号（供后续引用原文）</text>
+
+      <rect class="bxa" x="80" y="250" width="630" height="66"/>
+      <text class="tb" x="98" y="274">② 语义理解与维度评分</text>
+      <text class="t" x="98" y="296">按学科维度体系逐维打分，并给出「支持该分数的原文依据」</text>
+
+      <rect class="bxa" x="80" y="374" width="630" height="80"/>
+      <text class="tb" x="98" y="398">③ 报告生成 + 知识点缺口判定</text>
+      <text class="t" x="98" y="420">结合年级档位、用户自评水平、作文实际情况，产出报告三部分与「优先提升项」；</text>
+      <text class="t" x="98" y="440">再由优先提升项与维度短板推导缺失知识点</text>
+
+      <rect class="bxo" x="80" y="506" width="300" height="72"/>
+      <text class="tb" x="98" y="530">输出 A：诊断报告（能力一）</text>
+      <text class="t" x="98" y="551">称号 / 能力维度数据 / 文字性点评</text>
+      <text class="ts" x="98" y="568">→ 前端渲染成图表与卡片</text>
+
+      <rect class="bxo" x="410" y="506" width="300" height="72"/>
+      <text class="tb" x="428" y="530">输出 B：推荐内容（能力二）</text>
+      <text class="t" x="428" y="551">知识点缺口 → 课程 + 试题</text>
+      <text class="ts" x="428" y="568">→ 落到具体的课程与练习</text>
+
+      <path class="ln" d="M195,66 L195,128"/>
+      <path class="ln" d="M420,66 L400,128"/>
+      <path class="ln" d="M620,66 L600,128"/>
+      <path class="ln" d="M395,198 L395,246"/>
+      <path class="ln" d="M395,316 L395,370"/>
+      <path class="ln" d="M330,454 L250,502"/>
+      <path class="ln" d="M500,454 L560,502"/>
+    </svg>
+  </div>
+
+  <table>
+    <tr><th style="width:60px">编号</th><th style="width:200px">能力</th><th>算法侧要做的事</th><th style="width:78px">优先级</th></tr>
+    <tr>
+      <td>C1</td><td><strong>作文诊断报告生成</strong></td>
+      <td>图片转文字 → 语义理解 → 结合年级与自评产出报告（称号 / 能力维度数据 / 文字点评）</td>
+      <td><span class="tag p0">P0</span></td>
+    </tr>
+    <tr>
+      <td>C2</td><td><strong>课程与试题推荐</strong></td>
+      <td>基于诊断结果判断缺失知识点 → 从带标签的课程/试题库中匹配并返回推荐项</td>
+      <td><span class="tag p0">P0</span></td>
+    </tr>
+    <tr>
+      <td>C3</td><td>内容安全兜底</td>
+      <td>识别或生成的内容命中敏感、危险、个人信息时，按内容安全策略隐藏或改写</td>
+      <td><span class="tag p1">P1</span></td>
+    </tr>
+    <tr>
+      <td>C4</td><td>失败可解释</td>
+      <td>识别失败 / 材料不对应 / 文字过少时返回可解释原因与引导话术，供前端提示</td>
+      <td><span class="tag p1">P1</span></td>
+    </tr>
+  </table>
+
+  <h2 id="s4">四、能力一：作文诊断报告生成（C1）</h2>
+
+  <h3>4.1 输入</h3>
+  <p>算法侧会收到以下信息，具体对接方式以平台侧为准，此处明确的是<strong>必须齐备的信息</strong>：</p>
+  <table>
+    <tr><th style="width:180px">信息</th><th style="width:74px">必传</th><th>说明</th></tr>
+    <tr><td><strong>学科</strong></td><td>是</td><td>语文 / 英语。<strong>本期两个学科都要支持</strong>，且维度体系、评分口径分学科。</td></tr>
+    <tr><td><strong>年级</strong></td><td>是</td><td>用户在「写作情况」页选择（对应「高几」）。用于选评分基准与难度档位。</td></tr>
+    <tr><td><strong>作文水平自评</strong></td><td>是</td><td>用户主观填写的档位。<strong>仅作参考信号，不得直接决定分数</strong>，见 4.4 第 1 条。</td></tr>
+    <tr><td>期望提升方向</td><td>否</td><td>选填。可作为点评与推荐的加权偏好，缺失时按诊断结果自行决定。</td></tr>
+    <tr><td><strong>作文题目图</strong></td><td>是</td><td>题干 / 材料 / 写作要求，1 张。</td></tr>
+    <tr><td><strong>作文正文图</strong></td><td>是</td><td>含标题与全文。支持多页，需算法侧自行做多页拼接与顺序判定。</td></tr>
+  </table>
+  <p class="small">约束（与 PRD 一致）：支持 JPG / PNG；单张大小上限待确认；不做静默转码，其他格式不予受理。</p>
+
+  <h3>4.2 算法侧需自行完成的处理链路</h3>
+  <p>以下几点请算法侧<strong>内部闭环</strong>，不要回抛给前端或用户：</p>
+  <ol>
+    <li><strong>手写图文转写。</strong>把两类图片转成文本，输出「题目文本」与「正文文本」。</li>
+    <li><strong>句子切分与编号。</strong>正文需切分成可引用的句子单元并带稳定编号——报告的「优秀句子」与「修改示例」要能指回具体句子。</li>
+    <li><strong>多页顺序判定。</strong>正文多页时由算法侧判断页序，不要求用户手动排序。</li>
+    <li><strong>题目与正文是否对应。</strong>PRD 已明确「题目与正文是否对应由诊断环节判断」。若正文明显跑题或与题目无关，需在报告中体现，而不是当作识别失败。</li>
+    <li><strong>材料质量判定。</strong>图片模糊、反光、倾斜、文字过少、非作文内容（例如拍到无关画面）时，返回可解释的失败原因，供前端引导重拍。</li>
+  </ol>
+
+  <h3>4.3 报告需要包含什么</h3>
+  <p>报告固定三部分，请按下面这份清单产出内容——每一部分都是学生和家长会直接读到的：</p>
+  <table>
+    <tr><th style="width:118px">部分</th><th style="width:250px">必须包含</th><th>说明</th></tr>
+    <tr>
+      <td><strong>第一部分<br>称号</strong></td>
+      <td>称号名、一句总结文案、状态标签</td>
+      <td>渲染在报告顶部的称号卡。三项都要给，缺任一项这张卡就不完整。</td>
+    </tr>
+    <tr>
+      <td><strong>第二部分<br>能力维度数据</strong></td>
+      <td>
+        每个能力维度给出：<br>
+        1、维度名称<br>
+        2、本维度的程度数值<br>
+        3、本维度的定性档位<br>
+        4、支撑该判断的原文依据
+      </td>
+      <td>
+        程度数值供前端画图，定性档位供只展示文案时兜底，两者都要给（原因见 4.4 第 2 条）。<br>
+        原文依据是让这个程度站得住脚的东西，不能凭感觉给。
+      </td>
+    </tr>
+    <tr>
+      <td><strong>第三部分<br>文字性点评</strong></td>
+      <td>
+        1、写得好的地方<br>
+        2、写得不好的地方<br>
+        3、优秀句子（需指回原文）<br>
+        4、修改示例（原文节选 + 改写示范）<br>
+        5、本次优先提升项（含问题证据与一条可执行建议）
+      </td>
+      <td>「优秀句子」与「修改示例」必须能对应回识别出的原文句子，前端要据此做高亮标注。</td>
+    </tr>
+  </table>
+  <div class="callout">
+    <span class="t">另需一并返回</span>
+    ① <strong>识别出的原文文本</strong>（题目 + 正文），报告里的所有引用都从这里来；<br>
+    ② <strong>本次诊断是否可信的判断</strong>——置信不足时前端不做强结论展示，改为提示样本不足、建议重新提交。
+  </div>
+
+  <h3>4.4 内容与口径约束（重要，请严格对齐）</h3>
+  <p>这些约束来自已定稿的 PRD，属于<strong>验收项</strong>，不只是建议：</p>
+  <table>
+    <tr><th style="width:36px">#</th><th style="width:200px">约束</th><th>说明</th></tr>
+    <tr>
+      <td>1</td><td>自评水平不得直接决定分数</td>
+      <td>用户自评是主观信号。它只能用于<strong>调整表达方式与推荐偏好</strong>，不能拿来当评分基准——否则同一篇作文换个自评档位就换了分数，家长一对比就会发现。</td>
+    </tr>
+    <tr>
+      <td>2</td><td>程度数值与定性档位必须同时给出</td>
+      <td>PRD 现行口径是<strong>只向用户展示程度环、不出现数字分数</strong>；而本次提需要求给出数值以便前端做图表。<br>因此请两个都出：数值供前端使用，定性档位供展示兜底。<strong>这一处口径冲突需要产品、教研、算法三方一起定，见待确认 4。</strong></td>
+    </tr>
+    <tr>
+      <td>3</td><td>优先提升项有且只有一个</td>
+      <td>由诊断维度与作文证据综合决定，<strong>不能简单等同于最低分维度</strong>。学生一次只能改一件事。</td>
+    </tr>
+    <tr>
+      <td>4</td><td>修改示例的原文必须来自本次识别文本</td>
+      <td>不得改写、编造或引用范文。引用不完整时以省略号标识。</td>
+    </tr>
+    <tr>
+      <td>5</td><td>改写示例只示范方向</td>
+      <td>不覆盖学生原文，也不宣称是唯一正确答案。</td>
+    </tr>
+    <tr>
+      <td>6</td><td>不对学生作人格或能力定性</td>
+      <td>称号、总结与状态标签须<strong>积极、具体</strong>。禁止「你语言能力差」「没有写作天赋」这类表达；要说「这篇作文的论证还可以更有层次」。</td>
+    </tr>
+    <tr>
+      <td>7</td><td>不承诺结果</td>
+      <td>不使用「看完必提分」「保证提升 X 分」这类话术。</td>
+    </tr>
+    <tr>
+      <td>8</td><td>引用原文须一致</td>
+      <td>「优秀句子」与「修改示例」引用的文本，必须与识别出的原文句子<strong>逐字一致</strong>，否则前端高亮会对不上。</td>
+    </tr>
+  </table>
+
+  <div class="conflict">
+    <span class="t">⚠ 需要三方一起定的一处口径冲突：能力维度是否向用户展示数字分数？</span>
+    已定稿的 PRD 写的是「<strong>四项能力维度只展示程度环，不向用户呈现数字分数</strong>」；而本次提需因为前端要用数据画图，要求算法侧给出每个维度的数值。<br>
+    两种读法都成立：<strong>①</strong> 数值仅供内部与图表使用，界面上不出现具体数字；<strong>②</strong> 界面直接展示分数。<br>
+    <strong>算法侧先按第 ① 种准备不会白做</strong>——程度数值与定性档位都出即可覆盖两种读法。请评审时给出结论，见待确认 4。
+  </div>
+
+  <h3>4.5 能力维度体系：语文与英语分学科</h3>
+  <p>这是本次提需<strong>最需要教研侧先拍板</strong>的一件事。请算法侧<strong>不要把维度写死</strong>，按「学科 → 维度清单」配置驱动，否则加学科就要改链路。</p>
+  <table>
+    <tr><th style="width:110px">学科</th><th>能力维度</th><th style="width:150px">状态</th></tr>
+    <tr>
+      <td><strong>语文</strong></td>
+      <td>审题立意 / 结构论证 / 语言表达 / 素材运用</td>
+      <td><span class="tag p0">已定</span>四维固定（来自 PRD）</td>
+    </tr>
+    <tr>
+      <td><strong>英语</strong></td>
+      <td>待教研侧给定。<span class="small">（英语作文的评分关注点与语文差异明显，通常需覆盖内容完成度、语法准确性、词汇与句式、篇章结构等方向，且需处理拼写与语法错误的具体定位。）</span></td>
+      <td><span class="tag fix">待教研给</span>见待确认 1</td>
+    </tr>
+  </table>
+  <div class="callout">
+    <span class="t">给算法侧的设计建议</span>
+    建议把「维度清单、各维度评分标准、档位阈值」做成<strong>配置</strong>而非写死在链路里，由教研输出、算法消费。这样语文四维上线后，英语维度一到就能直接接。
+  </div>
+
+  <h3>4.6 失败与异常处理（对应 C4）</h3>
+  <p>失败必须<strong>可解释、可指导</strong>，不能只给一个笼统的「诊断失败」。请按下面的场景分别返回可读的原因说明，前端会据此展示对应的引导话术：</p>
+  <table>
+    <tr><th style="width:220px">场景</th><th>需要返回什么</th><th style="width:230px">前端会怎么做</th></tr>
+    <tr><td>图片模糊 / 反光 / 看不清</td><td>说明是照片质量问题、看不清内容</td><td>提示重拍，保留已选材料</td></tr>
+    <tr><td>正文文字过少</td><td>说明正文内容太少，不足以做出判断</td><td>提示拍完整篇</td></tr>
+    <tr><td>拍的明显不是作文</td><td>说明材料内容不是作文</td><td>提示重新确认材料</td></tr>
+    <tr><td>正文与题目不相关</td><td><strong>建议不作为失败处理</strong>，改为在报告中指出审题问题</td><td>正常出报告，报告里体现跑题</td></tr>
+    <tr><td>正文多页拼接失败</td><td>说明页序或页面衔接没能识别成功</td><td>提示重新上传或分次拍摄</td></tr>
+    <tr><td>内部异常</td><td>说明本次诊断未能完成</td><td>提示稍后重试，保留材料</td></tr>
+  </table>
+
+  <h2 id="s5">五、能力二：课程与试题推荐（C2）</h2>
+
+  <h3>5.1 要解决什么</h3>
+  <p>报告告诉学生「你哪里不行」，推荐要告诉他「那我该看什么、练什么」。逻辑是：</p>
+  <p><strong>诊断结果 → 判断缺哪个知识点 → 从库里挑出该知识点对应的课程与试题。</strong></p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 960 250" width="100%" style="max-width:940px" role="img" aria-label="推荐匹配链路">
+      <defs>
+        <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L7,3 z" fill="#8b86c9"/>
+        </marker>
+        <style>
+          .rb{ fill:#fff; stroke:#c9c5ea; stroke-width:1.4; rx:9; }
+          .rbg{ fill:#f6f5ff; stroke:#c9c5ea; stroke-width:1.4; rx:9; }
+          .rbo{ fill:#f0fdf4; stroke:#86efac; stroke-width:1.6; rx:9; }
+          .rt{ font-family:"Microsoft YaHei","PingFang SC",sans-serif; fill:#1f2937; font-size:12.4px; }
+          .rtb{ font-weight:700; fill:#3b3486; font-size:13px; }
+          .rts{ font-size:11px; fill:#6b7280; }
+          .rl{ stroke:#8b86c9; stroke-width:1.6; fill:none; marker-end:url(#ar2); }
+        </style>
+      </defs>
+
+      <rect class="rbg" x="12" y="60" width="150" height="66"/>
+      <text class="rtb" x="28" y="84">诊断结果</text>
+      <text class="rts" x="28" y="102">维度分数 · 优先提升项</text>
+      <text class="rts" x="28" y="117">年级 · 学科 · 文体</text>
+
+      <rect class="rb" x="196" y="60" width="158" height="66"/>
+      <text class="rtb" x="212" y="84">缺口知识点判定</text>
+      <text class="rt" x="212" y="104">算出「缺哪个知识点」</text>
+      <text class="rts" x="212" y="119">而非「哪个维度低」</text>
+
+      <rect class="rb" x="388" y="30" width="188" height="52"/>
+      <text class="rt" x="404" y="53">课程库（带标签）</text>
+      <text class="rts" x="404" y="70">知识点 / 年级 / 学科 / 文体</text>
+
+      <rect class="rb" x="388" y="104" width="188" height="52"/>
+      <text class="rt" x="404" y="127">试题库（带标签）</text>
+      <text class="rts" x="404" y="144">同上</text>
+
+      <rect class="rb" x="612" y="60" width="130" height="66"/>
+      <text class="rtb" x="628" y="84">匹配 + 排序</text>
+      <text class="rts" x="628" y="103">多候选排序</text>
+      <text class="rts" x="628" y="118">与兜底策略</text>
+
+      <rect class="rbo" x="778" y="60" width="170" height="66"/>
+      <text class="rtb" x="794" y="82">课程 1 门 + 试题 1 组</text>
+      <text class="rts" x="794" y="100">落到具体的课程</text>
+      <text class="rts" x="794" y="115">与具体的练习</text>
+
+      <path class="rl" d="M162,93 L192,93"/>
+      <path class="rl" d="M354,84 L384,62"/>
+      <path class="rl" d="M354,102 L384,124"/>
+      <path class="rl" d="M576,56 L608,80"/>
+      <path class="rl" d="M576,130 L608,106"/>
+      <path class="rl" d="M742,93 L774,93"/>
+    </svg>
+  </div>
+
+  <h3>5.2 输入</h3>
+  <table>
+    <tr><th style="width:190px">信息</th><th>说明</th></tr>
+    <tr><td><strong>年级、学科</strong></td><td>推荐必须限定在<strong>同学科、同年级（或适配年级区间）</strong>的范围内，不能给高三学生推初三的课。</td></tr>
+    <tr><td><strong>文体</strong></td><td>如议论文 / 记叙文 / 应用文。类型要匹配——「把议论文观点讲透」的课不能推给写记叙文的学生。</td></tr>
+    <tr><td><strong>各维度评分结果</strong></td><td>能力一产出的能力维度数据。</td></tr>
+    <tr><td><strong>优先提升项</strong></td><td><strong>这是推荐的主锚点</strong>——PRD 要求推荐内容与优先提升项一致。</td></tr>
+    <tr><td>课程库 / 试题库</td><td>带标签的存量资产；标签体系本身需教研侧先给，见第六章。</td></tr>
+  </table>
+
+  <h3>5.3 推荐需要输出什么</h3>
+  <table>
+    <tr><th style="width:150px">内容</th><th>必须包含</th></tr>
+    <tr>
+      <td><strong>知识点缺口</strong></td>
+      <td>判定缺了哪几个知识点；每个知识点要说明<strong>为什么判定为缺</strong>，并关联回它对应哪个能力维度。</td>
+    </tr>
+    <tr>
+      <td><strong>推荐课程</strong></td>
+      <td>课程名、卡片上的类型文案、封面、时长，以及<strong>能唯一定位这门课的标识</strong>（前端要能跳转）；同时标明它匹配的是哪个知识点。</td>
+    </tr>
+    <tr>
+      <td><strong>推荐试题 / 练习</strong></td>
+      <td>练习名称、卡片上的类型文案，以及能唯一定位这组练习的标识；同样标明匹配的是哪个知识点。</td>
+    </tr>
+    <tr>
+      <td><strong>是否走的兜底</strong></td>
+      <td>没有匹配内容时会给兜底推荐，这种情况需要明确标识出来，前端和后续数据分析要能区分。</td>
+    </tr>
+  </table>
+
+  <h3>5.4 约束</h3>
+  <ol>
+    <li><strong>与优先提升项一致。</strong>推荐内容须与本次优先提升项、作文类型、年级三者一致。</li>
+    <li><strong>必须能唯一定位，不能只给文案。</strong>前端要能跳转——返回课程名却给不出课程编号，等于不可用。</li>
+    <li><strong>课程下架或试题无匹配要有兜底。</strong>不展示失效入口，改推通用提升建议或兜底内容，并明确标识这是兜底结果。</li>
+    <li><strong>不重复推荐。</strong>同一学生在同一会话内重复诊断，应避免反复推同一条让人产生「没听懂我」的感觉；去重策略请一并给出。</li>
+    <li><strong>推荐项数量本期固定。</strong>报告页只呈现<strong>1 门课程 + 1 组配套练习</strong>，不要返回长列表。</li>
+  </ol>
+
+  <h3>5.5 与能力一的调用关系</h3>
+  <div class="callout">
+    <span class="t">建议：一次提交、一次返回</span>
+    报告页需要同时渲染「诊断结果」和「推荐内容」，学生只点了一次「开始 AI 诊断」。<br>
+    因此建议算法侧提供<strong>联合结果</strong>——一次请求同时返回能力一与能力二的内容；若拆成两个接口，请由平台侧在一次等待内完成串行编排，<strong>不要让用户为两次调用等两次</strong>。<br>
+    这一点需要产品和算法一起确认，见待确认 5。
+  </div>
+
+  <h2 id="s6">六、上游依赖（需教研侧先给）</h2>
+  <p>以下三项不解决，能力一的能力维度部分与能力二整条链路都无法开工。产品会同步向语文、英语教研组提需：</p>
+  <table>
+    <tr><th style="width:44px">#</th><th style="width:200px">依赖项</th><th>为什么是前置</th></tr>
+    <tr><td>1</td><td><strong>英语能力维度体系与评分标准</strong></td><td>语文四维已定，英语维度未定。维度不齐，能力维度数据就无法产出。</td></tr>
+    <tr><td>2</td><td><strong>各维度档位阈值与定性文案</strong></td><td>什么水平算「较突出」、什么算「待提升」，以及每个档位给学生看的话术。</td></tr>
+    <tr><td>3</td><td><strong>课程 / 试题的知识点标签体系</strong></td><td>能力二的匹配依赖标签。需要明确：标签粒度、一门课/一道题能否多标签、标签与年级学科文体的关系、标签库在哪里维护。</td></tr>
+  </table>
+
+  <h2 id="s7">七、验收标准</h2>
+  <p>以下为验收时会实际抽查的项，请按此准备演示与说明：</p>
+  <ol>
+    <li>语文、英语两个学科各能跑通一篇真实手写作文（现场提供或事先准备），产出结构完整的报告。</li>
+    <li>报告的三个部分齐备：称号（含总结与状态标签）、能力维度数据（含程度数值与定性档位）、文字点评（含写得好的、写得不好的、优秀句子、修改示例）。</li>
+    <li>「优秀句子」与「修改示例」引用的原文，与识别文本逐字一致，前端高亮能对上。</li>
+    <li>「优先提升项」有且只有一个，且不是简单地取最低分维度。</li>
+    <li>维度数据能把前端图表画出来（数值区间明确，缺失时的表现也要明确）。</li>
+    <li>推荐结果能定位到具体课程与练习，且与优先提升项、文体、年级一致。</li>
+    <li>至少三类失败场景能返回正确的可解释原因，前端引导话术可用。</li>
+    <li>全流程无违反 4.4 约束的文案。</li>
+  </ol>
+
+  <h2 id="s8">八、交付物与优先顺序</h2>
+  <table>
+    <tr><th style="width:66px">优先级</th><th style="width:230px">交付物</th><th>内容</th></tr>
+    <tr><td><span class="tag p0">P0</span></td><td>技术方案评估</td><td>实现路径、模型选型、手写识别方案与风险判断。<strong>建议本次评审就要拿到。</strong></td></tr>
+    <tr><td><span class="tag p0">P0</span></td><td>输出内容确认版</td><td>基于本文件 4.3 / 5.3 的清单，反馈可实现的范围与冲突点。</td></tr>
+    <tr><td><span class="tag p0">P0</span></td><td>能力一可联调版本</td><td>能产出结构完整的报告，供前端接入。</td></tr>
+    <tr><td><span class="tag p1">P1</span></td><td>能力二可联调版本</td><td>依赖知识点标签体系就位。</td></tr>
+    <tr><td><span class="tag p1">P1</span></td><td>失败场景与话术清单</td><td>4.6 的完整场景列表与建议话术。</td></tr>
+  </table>
+
+  <h2 id="s9">九、待确认清单</h2>
+  <p>以下问题会影响开发排期与产出形态，请在评审时逐条给出结论：</p>
+  <table>
+    <tr><th style="width:40px">#</th><th style="width:250px">问题</th><th>影响</th></tr>
+    <tr>
+      <td>1</td>
+      <td><strong>英语的能力维度是哪些？是否与语文共用一套？</strong></td>
+      <td>决定能力维度数据能不能产出、英语能否上线。倾向方案：分学科各一套维度，由配置驱动。——<strong>需教研侧给</strong></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>维度数值的量纲与区间是什么？</strong>（0-100 分？百分位？等级换算值？）</td>
+      <td>前端图表、档位阈值、跨学科可比性都取决于此。</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>同一学生在同一会话内重复诊断，结果是否要稳定？</strong></td>
+      <td>影响是否要加结果缓存或一致性约束。若一次诊断换一个称号和分数，家长会立刻不信。</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>【口径冲突】能力维度是否向用户展示数字分数？</strong><br>PRD 现写「只展示程度环，不向用户呈现数字分数」，本次提需要求给出数值用于前端图表。</td>
+      <td>两种读法都成立：① 数值仅内部/图表使用，界面不出现数字；② 界面直接显示分数。<br><strong>需要产品、教研、算法三方一起定</strong>。算法侧按第 ① 种准备（程度数值与定性档位都出）不会白做。</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><strong>能力一与能力二是联合返回还是两个接口？</strong></td>
+      <td>决定前端等待次数与报告页渲染时序。</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>单张图片大小上限与正文页数上限</td>
+      <td>PRD 中仍为「待确认」，会直接影响识别耗时与失败率。</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>知识点标签体系的维护方与更新频率</td>
+      <td>标签更新后推荐是否需要同步、由谁触发。</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>算法完全不可用时的降级形态</td>
+      <td>是整页不可用，还是降级为「仅称号 + 通用建议」。</td>
+    </tr>
+  </table>
+
+  <hr>
+  <p class="small">
+    本文档为 AI 算法侧提需文档 V1.1，与《AI 作文诊断 H5 · 产品需求文档（PRD）》配套使用。<br>
+    教研侧（语文 / 英语）的维度与标签提需文档为独立文件，与本文件共同构成完整提需输入。
+  </p>
+
+</div>
+</body>
+</html>
